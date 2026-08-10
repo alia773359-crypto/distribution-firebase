@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>منصة التوزيع الذكي</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0ea5e9">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="التوزيع الذكي">
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--line:#e5e7eb;--txt:#0f172a;--muted:#64748b;--cyan:#cffafe;--cyan2:#ecfeff;--blue2:#eff6ff;--green:#dcfce7;--green2:#f0fdf4;--red:#fee2e2;--red2:#fef2f2;--gold:#fef3c7;--gold2:#fffbeb;--violet:#ede9fe;--dark:#111827}
+*{box-sizing:border-box}body{font-family:Arial,Tahoma,sans-serif;margin:0;background:var(--bg);color:var(--txt);font-size:15px}.wrap{padding:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(17,24,39,.06)}h3{margin:0 0 10px;font-size:17px}.muted{color:var(--muted);font-size:12.5px;line-height:1.7}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}label{font-weight:800;font-size:13.5px;display:block;margin-bottom:4px}input,select{width:100%;border:1px solid #d7deea;border-radius:10px;padding:9px;background:#fff;text-align:center;font-size:14px}button{border:0;border-radius:12px;padding:10px 7px;font-weight:900;cursor:pointer;color:#102047;background:#eef2ff;min-height:40px;font-size:13.5px}.btnBlue{background:var(--cyan);color:#155e75}.btnDark{background:var(--dark);color:#fff}.btnGreen{background:var(--green);color:#166534}.btnRed{background:var(--red);color:#991b1b}.btnGold{background:var(--gold);color:#92400e}.btnViolet{background:var(--violet);color:#5b21b6}.full{width:100%;margin-top:8px}.status{background:var(--dark);color:#fff;border-radius:12px;padding:12px;text-align:center;font-weight:900;font-size:15px}.bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}.bar span{display:block;height:100%;width:0;background:#38bdf8;transition:.4s}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.metric{border:1px solid var(--line);border-radius:13px;padding:10px;text-align:center;background:#f8fafc}.metric .name{font-size:12.5px;color:var(--muted);font-weight:800}.metric b{display:block;font-size:19px;margin-top:5px}.metric.lockOk{background:var(--green2);color:#166534}.metric.lockBad{background:var(--red2);color:#991b1b}.msg{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:9px;margin-top:8px;min-height:38px;line-height:1.8;font-size:13.5px}.tiny{font-size:11.5px;color:var(--muted);line-height:1.8}details summary{cursor:pointer;font-weight:900;background:#f8fafc;border:1px solid var(--line);padding:10px;border-radius:12px}.pickBox{margin-top:8px;border:1px solid var(--line);border-radius:14px;padding:10px;background:#fbfdff}.locGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-height:220px;overflow:auto;padding:2px}.locCard{border:1px solid #dbe3ef;background:#fff;border-radius:10px;padding:5px 2px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;text-align:center;aspect-ratio:1/0.85;font-size:10.5px;max-width:90px}.locCard.on{background:var(--cyan2);border-color:#67e8f9}.locCard.wh.on{background:var(--gold2);border-color:#fcd34d}.locCard input{width:12px;height:12px;margin:0}.locText{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px}.ar{font-weight:900;font-size:10.5px;line-height:1.2}.code{direction:ltr;background:#eef2ff;border-radius:6px;padding:0 4px;font-size:9px;font-weight:900}
+.statBox{background:linear-gradient(160deg,#0ea5e9,#0284c7);color:#fff;border-radius:14px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(2,132,199,.3)}.statBox b{font-size:26px}.statBox span{font-size:13px;color:#e0f2fe;font-weight:800}
+.catPanel{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(17,24,39,.05)}
+.catPanel>.pnlHead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#f8fafc;border-radius:16px 16px 0 0}
+.catPanel>.pnlHead b{font-size:13px}.catPanel>.pnlHead .mini{display:flex;gap:6px}.catPanel>.pnlHead .mini button{padding:5px 10px;min-height:auto;font-size:10.5px;border-radius:8px}
+.catPanel>.pnlBody{padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.catCard{border:1.5px solid #e2e8f0;border-radius:14px;background:#fff;transition:.18s;overflow:hidden}
+.catCard:hover{border-color:#93c5fd;box-shadow:0 3px 10px rgba(37,99,235,.1)}
+.catCard.sel{border-color:#38bdf8;background:#f0f9ff}
+.catCard>.row{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer}
+.catCard>.row .cb{width:18px;height:18px;flex:0 0 18px;border:2px solid #94a3b8;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:900;cursor:pointer}
+.catCard.sel>.row .cb{background:#0ea5e9;border-color:#0ea5e9}
+.catCard>.row .lbl2{flex:1;text-align:right;cursor:pointer}
+.catCard>.row .lbl2 b{font-size:12.5px;display:block}
+.catCard>.row .lbl2 span{font-size:10.5px;color:#64748b}
+.catCard>.row .arrow{font-size:11px;color:#94a3b8;transition:.2s;cursor:pointer}
+.catCard.open>.row .arrow{transform:rotate(90deg);color:#0ea5e9}
+.catCard>.nest{display:none;padding:0 10px 10px}
+.catCard.open>.nest{display:block}
+.catLeaf{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;background:#fff;transition:.15s}
+.catLeaf:hover{border-color:#93c5fd}
+.catLeaf.sel{border-color:#38bdf8;background:#f0f9ff}
+.catLeaf .cb{width:16px;height:16px;flex:0 0 16px;border:2px solid #94a3b8;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:900}
+.catLeaf.sel .cb{background:#0ea5e9;border-color:#0ea5e9}
+.catLeaf .lbl2{flex:1;font-size:11.5px}
+@media(max-width:800px){.catPanel>.pnlBody{grid-template-columns:1fr 1fr}}
+.catGrid{display:flex;flex-wrap:wrap;gap:4px;padding:2px;align-items:flex-start}
+.catSq{position:relative;box-sizing:border-box;flex:0 0 68px;width:68px;min-height:52px;border:1px solid #dbe3ef;background:#fff;border-radius:9px;padding:5px 3px;cursor:pointer;display:flex;flex-direction:column;gap:1px;align-items:center;justify-content:center;text-align:center;font-size:9px;line-height:1.15;transition:.15s}
+.catSq:hover{border-color:#93c5fd}
+.catSq.sel{background:var(--cyan2);border-color:#67e8f9}
+.catSq .arrowBadge{position:absolute;top:2px;left:2px;background:#fff;border:1px solid #cbd5e1;border-radius:5px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:#64748b;transition:.2s}
+.catSq.open .arrowBadge{transform:rotate(90deg);color:#0ea5e9;border-color:#0ea5e9}
+.catSq b{font-weight:900;font-size:9px;line-height:1.2}
+.catSq .n{font-size:7.5px;color:#64748b}
+.catGrid.nested .catSq{flex-basis:58px;width:58px;min-height:46px;font-size:8.5px}
+.catGrid.nested2 .catSq{flex-basis:50px;width:50px;min-height:40px;font-size:8px;border-style:dashed}
+.catDrill{flex:0 0 100%;width:100%;border-right:3px solid #38bdf8;margin:6px 0 6px 4px;padding-right:10px}
+.catDrill.lvl2{border-right-color:#8b5cf6;margin-right:16px}
+.drillHead{display:flex;justify-content:space-between;align-items:center;gap:6px;background:#f1f5fb;border-radius:8px;padding:6px 8px;margin-bottom:6px}
+.drillHead b{font-size:10.5px}
+.drillHead .mini{display:flex;gap:5px;flex:0 0 auto}
+.drillHead .mini button{padding:4px 8px;min-height:auto;font-size:9px;border-radius:7px;background:#e0f2fe;color:#075985}
+.catDrill.lvl2 .drillHead{background:#f3effc}
+.catDrill.lvl2 .drillHead .mini button{background:#ede9fe;color:#5b21b6}
+@media(max-width:800px){.locGrid{grid-template-columns:repeat(3,1fr)}}.counter{background:#eef2ff;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;color:#334155}.toolbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}.toolbar button{min-height:34px;padding:7px 5px;font-size:11px;background:#edf2fb}.softTitle{background:linear-gradient(90deg,var(--blue2),var(--cyan2));border:1px solid #dbeafe;border-radius:12px;padding:9px 10px;font-weight:900;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}.pill{font-size:10px;background:#fff;border:1px solid #dbe3ef;border-radius:999px;padding:3px 7px;color:#475569}
+
+body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;height:100vh}
+.side{background:linear-gradient(165deg,#1e3a5f 0%,#1e293b 55%,#164e63 100%);color:#fff;padding:20px 14px;overflow:auto;box-shadow:4px 0 24px rgba(0,0,0,.2)}
+.side h2{font-size:16px;margin:0 0 2px;text-align:center;font-weight:900;letter-spacing:.3px}
+.side .ver{text-align:center;font-size:11px;color:#fbbf24;margin-bottom:20px;font-weight:900;letter-spacing:.5px}
+.navGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nav{width:100%;background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:800;aspect-ratio:1/0.85;justify-content:center;transition:.15s}
+.nav .ic{font-size:18px}
+.nav:hover{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.4)}
+.nav.active{background:linear-gradient(160deg,#38bdf8,#0ea5e9);color:#062032;border-color:transparent;box-shadow:0 4px 14px rgba(14,165,233,.4)}
+.main{overflow:auto;padding:16px;background:radial-gradient(1200px 600px at 20% -10%,#eef4ff 0%,transparent 60%),#f4f6fb}
+.page{display:none} .page.active{display:block} .fileCard{max-width:900px;margin:20px auto}
+.conn{display:flex;gap:10px;align-items:center;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px} .dot{width:12px;height:12px;border-radius:50%;background:#ef4444} .dot.ok{background:#22c55e}
+@media(max-width:800px){.desktop{grid-template-columns:1fr}.side{padding:10px}.navGrid{grid-template-columns:repeat(4,1fr)}.nav{aspect-ratio:1/0.9;font-size:9.5px;padding:6px 2px}.nav .ic{font-size:15px}}
+.status.busy{background:#1d4ed8}.status.ok{background:#15803d}.status.fail{background:#b91c1c}
+[data-theme="dark"]{--bg:#0b1220;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--muted:#94a3b8;--cyan:#164e63;--cyan2:#1e3a4a;--blue2:#1e2a4a;--green:#14532d;--green2:#152e21;--red:#450a0a;--red2:#2d1414;--gold:#451a03;--gold2:#2d1f10;--violet:#3b2467;--dark:#0b1220}
+[data-theme="dark"] body{background:var(--bg);color:var(--txt)}
+[data-theme="dark"] input,[data-theme="dark"] select{background:#0f1a2e;color:var(--txt);border-color:var(--line)}
+[data-theme="dark"] .msg{background:#0f1a2e;border-color:#475569;color:var(--txt)}
+[data-theme="dark"] .metric{background:#0f1a2e;border-color:var(--line)}
+[data-theme="dark"] .cmdCard,[data-theme="dark"] .catPanel,[data-theme="dark"] .brRow,[data-theme="dark"] .locCard,[data-theme="dark"] .catSq,[data-theme="dark"] .fileChip{background:#1e293b;border-color:var(--line);color:var(--txt)}
+[data-theme="dark"] .catPanel>.pnlHead,[data-theme="dark"] .drillHead,[data-theme="dark"] .pickBox{background:#15213a;border-color:var(--line)}
+[data-theme="dark"] .convItem{border-color:var(--line)}
+[data-theme="dark"] .convItem:hover{background:#15213a}
+[data-theme="dark"] .convItem.active{background:#12283a}
+[data-theme="dark"] .bubble.other{background:#1e293b;color:var(--txt)}
+[data-theme="dark"] button{color:var(--txt)}
+[data-theme="dark"] button:not(.btnBlue):not(.btnDark):not(.btnGreen):not(.btnRed):not(.btnGold):not(.btnViolet){background:#1e293b}
+[data-theme="dark"] .tplPick{background:#1e293b;border-color:var(--line);color:var(--txt)}
+[data-theme="dark"] #conversationList{background:#15213a}
+[data-theme="dark"] #chatHeader,[data-theme="dark"] #chatComposeBar{border-color:var(--line)}
+#themeToggleBtn{position:fixed;bottom:16px;right:16px;z-index:600;background:#1e293b;color:#fff;border:1px solid #475569;border-radius:999px;width:46px;height:46px;font-size:19px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+#whLimitsGrid,#branchLimitsGrid{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}
+#whLimitsGrid .locCard,#branchLimitsGrid .locCard{width:100%;max-width:none;aspect-ratio:auto;flex-direction:row;align-items:center;justify-content:space-between;padding:9px 12px;text-align:right;gap:8px}
+#whLimitsGrid .locCard .locText,#branchLimitsGrid .locCard .locText{align-items:flex-start;text-align:right;flex:1;min-width:0}
+#whLimitsGrid .locCard input,#branchLimitsGrid .locCard input{flex:0 0 auto}
+[data-theme="dark"] #whLimitsGrid .locCard,[data-theme="dark"] #branchLimitsGrid .locCard{background:#1e293b;border-color:var(--line)}
+.cmdGrp{margin-bottom:14px}.cmdGrp>.lbl{font-size:11px;font-weight:900;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}.cmdGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cmdCard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:right;cursor:pointer;transition:.15s}.cmdCard:hover{border-color:#93c5fd;box-shadow:0 3px 10px rgba(37,99,235,.12)}.cmdCard .ic{font-size:20px}.cmdCard .ti{font-weight:900;font-size:13px;margin-top:4px}.cmdCard .de{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5}.cmdCard.blue{border-color:#bae6fd}.cmdCard.dark{background:#111827;color:#fff}.cmdCard.dark .de{color:#94a3b8}.cmdCard.red{border-color:#fecaca}.cmdCard.gold{border-color:#fde68a}.cmdCard.green{border-color:#bbf7d0}
+.card.accent-blue{border-right:5px solid #38bdf8}.card.accent-dark{border-right:5px solid #111827}.card.accent-green{border-right:5px solid #22c55e}.card.accent-gold{border-right:5px solid #f59e0b}.card.accent-violet{border-right:5px solid #8b5cf6}.card.accent-red{border-right:5px solid #ef4444}
+#lockScreen{position:fixed;inset:0;background:linear-gradient(160deg,#0c4a6e 0%,#0f172a 55%,#1e1b4b 100%);color:#0f172a;display:flex;align-items:center;justify-content:center;z-index:999}#lockScreen.hidden{display:none}
+.lockBox{background:#fff;border-radius:24px;padding:38px 34px 30px;width:400px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.lockIconWrap{width:66px;height:66px;border-radius:18px;background:linear-gradient(160deg,#e0f2fe,#bae6fd);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 14px;box-shadow:inset 0 0 0 1px #7dd3fc}
+.lockBox h2{margin:0 0 6px;color:#0f172a;font-size:19px}
+.lockBox .muted2{color:#64748b;font-size:11.5px;margin-bottom:18px;line-height:1.7}
+.lockBox input{margin-bottom:10px;background:#f8fafc;border:1px solid #e2e8f0;color:#0f172a;border-radius:10px;padding:12px 14px}
+.lockBox input:focus{outline:none;border-color:#0ea5e9;background:#fff}
+.lockBox button{width:100%;background:#0ea5e9;color:#fff;margin-top:4px;border-radius:10px;padding:12px;font-weight:900;font-size:13.5px}
+#lockScreen .lockBox button{background:#0ea5e9;color:#fff}
+.lockBox button:hover{background:#0284c7}
+.lockErr{color:#dc2626;font-size:12px;min-height:16px;margin-top:6px}
+.lockTabs{display:flex;gap:4px;margin-bottom:16px;background:#f1f5f9;border-radius:10px;padding:4px}.lockTabBtn{flex:1;background:transparent;color:#64748b;border:0;border-radius:8px;padding:9px 4px;font-size:10.5px;font-weight:900;cursor:pointer;min-height:auto}.lockTabBtn.active{background:#0ea5e9;color:#fff;box-shadow:0 2px 8px rgba(14,165,233,.35)}
+#branchBanner{position:fixed;top:0;left:0;right:0;z-index:500;background:linear-gradient(90deg,#0ea5e9,#0284c7);color:#fff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:900;box-shadow:0 2px 10px rgba(0,0,0,.15)}#branchBanner button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 12px;font-size:11px;min-height:auto}
+.brRow{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}.brRow .brInfo b{display:block;font-size:13px}.brRow .brInfo span{font-size:11px;color:var(--muted)}.brRow .brActions{display:flex;gap:6px;flex-wrap:wrap}.brRow .brActions button{padding:6px 10px;min-height:auto;font-size:11px;border-radius:8px}
+.permChip{display:inline-flex;align-items:center;gap:5px;border:1px solid #dbe3ef;border-radius:999px;padding:4px 10px;font-size:10.5px;font-weight:800;cursor:pointer;margin:2px;background:#f0fdf4;color:#166534}.permChip.locked{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+.cmdCard.lockedByAdmin{opacity:.4;pointer-events:none;position:relative}.cmdCard.lockedByAdmin::after{content:'🔒 مقفل من الإدارة';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.75);font-size:11px;font-weight:900;color:#991b1b;border-radius:14px}
+.convItem{padding:10px 12px;border-bottom:1px solid #e5e7eb;cursor:pointer;transition:.15s}.convItem:hover{background:#eef2ff}.convItem.active{background:#e0f2fe;border-right:3px solid #0ea5e9}.convItem b{display:block;font-size:12.5px}.convItem .prev{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}.convItem .badge{display:inline-block;background:#ef4444;color:#fff;border-radius:999px;font-size:9px;padding:1px 6px;margin-right:4px}
+.bubble{max-width:75%;padding:8px 12px;border-radius:14px;font-size:12.5px;line-height:1.6;position:relative}.bubble.me{align-self:flex-start;background:#0ea5e9;color:#fff;border-bottom-right-radius:4px}.bubble.other{align-self:flex-end;background:#f1f5f9;color:#0f172a;border-bottom-left-radius:4px}.bubble .sndr{font-size:10px;font-weight:900;opacity:.85;margin-bottom:3px}.bubble .time{font-size:9px;opacity:.7;margin-top:4px}
+.fileChip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 8px;margin-top:6px;font-size:11px}.bubble.other .fileChip{background:#fff;border:1px solid #dbe3ef}.fileChip button{padding:4px 8px;min-height:auto;font-size:10px;border-radius:7px}
+.tplPick{display:inline-block;border:1px solid #dbe3ef;border-radius:10px;padding:6px 10px;font-size:11px;cursor:pointer;margin:2px;background:#fff}.tplPick:hover{border-color:#93c5fd}
+</style><script src="theme.js"></script></head><body>
+<div id="lockScreen"><div class="lockBox">
+<div class="lockIconWrap">🚚</div>
+<h2>منصة التوزيع الذكي</h2>
+<div class="lockTabs">
+<button class="lockTabBtn active" id="tabAdminBtn" onclick="showLockTab('admin')">دخول الإدارة</button>
+<button class="lockTabBtn" id="tabBranchBtn" onclick="showLockTab('branch')">دخول فرع</button>
+<button class="lockTabBtn" id="tabRegisterBtn" onclick="showLockTab('register')">طلب انضمام فرع جديد</button>
+</div>
+<div id="adminLoginBlock">
+<div class="muted2" id="lockSub">أدخل كلمة المرور للدخول</div>
+<input type="password" id="lockPass" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doLogin()">
+<input type="password" id="lockPass2" placeholder="تأكيد كلمة المرور (أول مرة فقط)" style="display:none">
+<button onclick="doLogin()">دخول</button>
+<div class="lockErr" id="lockErr"></div>
+</div>
+<div id="branchLoginBlock" style="display:none">
+<div class="muted2">سجّل دخولك بحساب فرعك المعتمد من الإدارة</div>
+<input id="branchUser" placeholder="اسم المستخدم" onkeydown="if(event.key==='Enter')doBranchLogin()">
+<input type="password" id="branchPass" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doBranchLogin()">
+<button onclick="doBranchLogin()">دخول كفرع</button>
+<div class="lockErr" id="branchLoginErr"></div>
+</div>
+<div id="branchRegisterBlock" style="display:none">
+<div class="muted2">أرسل طلب انضمام فرعك - ينتظر موافقة الإدارة قبل ما تقدر تسجّل دخول</div>
+<input id="regDisplayName" placeholder="اسم الفرع (مثال: فرع الشاطئ)">
+<input id="regUsername" placeholder="اسم مستخدم تختاره">
+<input type="password" id="regPassword" placeholder="كلمة مرور (6 خانات فأكثر)">
+<input id="regPhone" placeholder="رقم الهاتف (مع رمز الدولة، مثال: 9665xxxxxxxx)" dir="ltr" style="text-align:left">
+<input id="regEmail" type="email" placeholder="البريد الإلكتروني" dir="ltr" style="text-align:left">
+<button onclick="doBranchRegister()">إرسال طلب الانضمام</button>
+<div class="lockErr" id="branchRegisterMsg"></div>
+</div>
+</div></div>
+<div id="branchBanner" style="display:none"></div>
+<div class="desktop"><aside class="side"><h2>منصة التوزيع الذكي</h2><div class="ver">شاطئ الوصل</div>
+<div class="navGrid">
+<button class="nav active" data-page="home"><span class="ic">🏠</span>الرئيسية</button><button class="nav" data-page="file"><span class="ic">📄</span>ملف Excel</button><button class="nav" data-page="dashboard"><span class="ic">🚀</span>التشغيل</button>
+<button class="nav" data-jump="sources"><span class="ic">🎯</span>المصادر</button><button class="nav" data-jump="shortage"><span class="ic">📉</span>النواقص</button>
+<button class="nav" data-jump="checks"><span class="ic">🩺</span>فحص وصيانة</button>
+<button class="nav" data-jump="settings"><span class="ic">⚙️</span>الإعدادات</button><button class="nav" data-page="categories"><span class="ic">🏷️</span>الفئات</button>
+<button class="nav" data-page="branches" id="navBranches"><span class="ic">👥</span>الفروع</button>
+<button class="nav" data-page="chat" id="navChat"><span class="ic">💬</span>الدردشة</button>
+<button class="nav" data-jump="monitor"><span class="ic">📊</span>المراقبة</button>
+<button class="nav" data-jump="exports"><span class="ic">⬇️</span>التنزيلات</button><button class="nav" data-page="odoo"><span class="ic">🔗</span>أودو</button>
+</div></aside>
+<main class="main">
+<section class="page active" id="page-home"><div class="wrap">
+<div class="card accent-blue" id="homeGreeting"><h3>🏠 مرحبًا</h3><div class="muted" id="homeGreetingText">جاري التحميل...</div></div>
+
+<div class="card">
+<h3>📊 حالة البيانات</h3>
+<div id="homeExcelStatus" class="msg">جاري الفحص...</div>
+</div>
+
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<h3 style="margin:0">📋 آخر تحديث لكل صفحة بالملف</h3>
+</div>
+<div class="muted" style="margin-bottom:8px">حدّد يدويًا متى حدّثت كل صفحة فعليًا بملف الإكسل - يظهر التاريخ والوقت لكل من يفتح المنصة.</div>
+<div id="homeSheetsGrid" class="metricGrid"></div>
+</div>
+
+<div id="homeAdminCards" style="display:none">
+<div class="card">
+<h3>👥 الفروع</h3>
+<div id="homeBranchStats" class="metricGrid"></div>
+</div>
+<div class="card">
+<h3>✉️ بريد الإشعارات (اختياري)</h3>
+<div class="muted">لو حددت بريدك هنا، توصلك رسالة كل ما تصلك رسالة دردشة جديدة أو طلب انضمام فرع (يحتاج إعداد خدمة EmailJS المجانية بالكود - راجع التعليمات).</div>
+<input id="homeAdminEmailInput" type="email" placeholder="بريدك الإلكتروني" dir="ltr" style="text-align:left;margin-top:8px">
+<button class="btnBlue full" style="margin-top:6px" onclick="saveHomeAdminEmail()">حفظ</button>
+<div class="lockErr" id="homeAdminEmailMsg" style="color:#166534"></div>
+</div>
+</div>
+
+<div class="card">
+<h3>⚡ اختصارات سريعة</h3>
+<div class="cmdGrid">
+<div class="cmdCard blue" onclick="document.querySelector('[data-page=file]').click()"><div class="ic">📄</div><div class="ti">ملف Excel</div></div>
+<div class="cmdCard blue" onclick="document.querySelector('[data-page=dashboard]').click()"><div class="ic">🚀</div><div class="ti">التشغيل</div></div>
+<div class="cmdCard blue" onclick="document.querySelector('[data-page=categories]').click()"><div class="ic">🏷️</div><div class="ti">الفئات</div></div>
+<div class="cmdCard blue" onclick="document.querySelector('[data-page=chat]').click()"><div class="ic">💬</div><div class="ti">الدردشة</div></div>
+</div>
+</div>
+</div></section>
+<section class="page" id="page-file"><div class="card fileCard accent-blue"><h3>ملف بيانات آلية توزيع علي</h3><div class="muted">يقرأ البرنامج البيانات من ملف Excel مباشرة، ثم ينفذ أوامر التوزيع ويصدر النتائج.</div>
+<div class="conn" style="margin-top:12px"><span class="dot" id="fileDot"></span><div><b id="fileStatus">لم يتم اختيار ملف</b><div class="muted" id="filePath">—</div></div></div>
+<div class="metricGrid" style="margin-top:12px"><div class="metric"><div class="name">الأوراق</div><b id="fileSheets">0</b></div><div class="metric"><div class="name">المنتجات</div><b id="fileProducts">0</b></div></div>
+<div class="grid2" style="margin-top:10px"><button class="btnBlue" id="chooseExcel">اختيار ملف Excel</button><button class="btnDark" id="reloadExcel">تحديث قراءة الملف</button></div><button class="full btnGreen" id="goDashboard">الانتقال إلى لوحة التشغيل</button><div class="msg" id="fileMsg">اختر ملف Excel.</div></div></section>
+<section class="page" id="page-dashboard"><div class="wrap">
+<div class="card accent-dark"><h3>منصة التوزيع الذكي</h3><div class="status" id="status">جاهز</div><div class="bar"><span id="bar"></span></div><div class="msg" id="msg">اختر أمر تشغيلي من البطاقات أدناه. كل بطاقة توضح تحت اسمها وش تسوي بالضبط.</div></div>
+
+<div class="card">
+<div class="cmdGrp" id="shortage"><div class="lbl">🚀 أوامر التوزيع الرئيسية — تعمل فقط على صفحة "المنتجات التي يحتاج لها توزيع"</div><div class="cmdGrid">
+<div class="cmdCard dark" onclick="callRun('aliBigDataRun')"><div class="ic">📦</div><div class="ti">BIG DATA</div><div class="de">نفس منطق Turbo بالضبط، لكن بدفعات تلقائية مناسبة لعدد كبير جدًا من المنتجات.</div></div>
+<div class="cmdCard blue" onclick="callRun('aliTurboRun')"><div class="ic">⚡</div><div class="ti">Turbo</div><div class="de">التوزيع العادي: يحسب احتياج كل فرع تلقائيًا حسب المبيعات ويحوّل من أفضل مصدر.</div></div>
+<div class="cmdCard green" onclick="callRun('aliTurboRunManual')"><div class="ic">✍️</div><div class="ti">Turbo يدوي</div><div class="de">نفس Turbo لكن بكمية ثابتة تكتبها أنت لكل وجهة بدل الحساب التلقائي.</div></div>
+<div class="cmdCard dark" onclick="callRun('aliExceptionalRun')"><div class="ic">🔻</div><div class="ti">السحب الاستثنائي الكامل</div><div class="de">يسحب كل الفائض من المصادر المحددة فورًا، متجاهلاً منع التكدس وشرط المبيعات الصفرية. اختر الطريقة أسفل (كمية محددة/تقسيم بالتساوي).</div></div>
+<div class="cmdCard gold" onclick="callRun('aliPreview20')"><div class="ic">👁️</div><div class="ti">معاينة أول 20</div><div class="de">تجربة سريعة على أول 20 منتج فقط من صفحة الاحتياج، بدون تنفيذ فعلي كامل.</div></div>
+</div>
+<div class="softTitle" style="margin-top:12px">📉 النواقص</div>
+<div class="cmdGrid">
+<div class="cmdCard" onclick="callRun('aliShortageFromWarehouses')"><div class="ic">🏬</div><div class="ti">نواقص الفروع من المستودعات</div><div class="de">يقترح تغطية كل نقص من كل مستودع مصدر على حدة (صفحة منفصلة لكل مستودع).</div></div>
+<div class="cmdCard gold" onclick="callRun('aliShortageBranchToBranch')"><div class="ic">🏪</div><div class="ti">نواقص الفروع من الفروع</div><div class="de">يختار لكل نقص أفضل فرع مصدر واحد فيه فائض كافٍ.</div></div>
+</div>
+<label style="margin-top:8px">حد اعتبار الفرع ناقص إضافي (مخزون) <span style="font-size:10px;color:#64748b">0 = تجاهل، اعتمد على نفس منطق BIG DATA فقط</span></label><input id="shortageStockThreshold" value="0" type="number"><div class="tiny">يكتشف حتى المنتجات التي يرفضها BIG DATA بسبب صفر مبيعات (مثل المنتجات الجديدة) - إذا مخزون الوجهة عند هذا الحد أو أقل، يُعتبر نقصًا بغض النظر عن قاعدة المبيعات الصفرية.</div>
+<div class="msg" id="shortageCatSummary" style="margin-top:8px">لم يتم تحديد أي فئة بعد - كل المنتجات ستدخل التشغيل. لتحديد فئات معينة، روح صفحة "🏷️ الفئات" من القائمة الجانبية واضغط "حفظ التحديد".</div>
+</div>
+
+<div class="cmdGrp" id="checks"><div class="lbl">🩺 فحص وصيانة</div><div class="cmdGrid">
+<div class="cmdCard" onclick="call('aliCheckData')"><div class="ic">📋</div><div class="ti">فحص البيانات</div><div class="de">يتأكد من قراءة الملف بشكل سليم ويعرض عدد المنتجات ونطاق التشغيل الفعلي.</div></div>
+<div class="cmdCard" onclick="call('aliDupCheck')"><div class="ic">🔁</div><div class="ti">كشف الباركود المكرر</div><div class="de">يفحص صفحة "المنتجات التي يحتاج لها توزيع" ويقول لك كم باركود مكرر فيها.</div></div>
+<div class="cmdCard red" onclick="call('aliCleanResults')"><div class="ic">🧹</div><div class="ti">تنظيف النتائج</div><div class="de">يمسح نتائج التشغيل المحفوظة داخل البرنامج فقط (ملف Excel الأصلي لا يتأثر).</div></div>
+<div class="cmdCard red" onclick="call('aliCancelRun')"><div class="ic">⛔</div><div class="ti">إلغاء التشغيل</div><div class="de">يوقف أي تشغيل جارٍ حاليًا.</div></div>
+</div></div>
+<div class="tiny">زر BIG DATA يستخدم نفس قواعد Turbo ويحدد حجم الدفعة تلقائيًا حسب عدد المنتجات في صفحة الاحتياج.</div>
+<div class="softTitle" style="margin-top:14px">🏷️ الفئات (رئيسية/فرعية/براند)</div>
+<div class="tiny">فحص، بحث، وتحديد الفئات صار له صفحة كاملة خاصة - اضغط "🏷️ الفئات" بالقائمة الجانبية.</div>
+</div>
+
+<div class="card"><h3>زر خاص: تشغيل حدود الفروع الخاصة</h3><div class="muted">يعمل فقط على الوجهات التي أدخلت لها "حد أدنى" في بطاقة حدود الفروع الخاصة أدناه (يتجاهل تمامًا أي فرع لم تحدد له حد أدنى، حتى لو كان محددًا كوجهة). يحترم قيود العرض وأقل تحويل دائمًا (بعكس السحب الاستثنائي).</div><label style="margin-top:8px">طريقة التوزيع</label><select id="branchLimitMode"><option>الأدنى</option><option>المبيعات</option></select><div class="tiny">"الأدنى": يوزع حتى يصل الفرع للحد الأدنى المحدد (متجاوزًا تغطية الفرع ومنع التكدس) طالما المبيعات الفعلية أقل من هذا الحد، وإذا كانت المبيعات أعلى منه يرجع للتوزيع حسب الاحتياج والمبيعات بكل قيوده الطبيعية. "المبيعات": يوزع دائمًا حسب الاحتياج والمبيعات وتغطية الفرع ومنع التكدس، لكن فقط على هذه الفروع المحددة.</div><button class="full btnViolet" onclick="callRun('aliBranchLimitRun')">تشغيل حدود الفروع الخاصة</button></div>
+<div class="card accent-blue" id="sources"><h3>المصادر والوجهات</h3><div class="muted">اختر المصادر والوجهات من البطاقات. المستودعات متاحة كمصادر وكوجهات عند الحاجة.</div><details open><summary style="background:var(--blue2);border-color:#bfdbfe">🔵 اختيار المصادر <span class="counter" id="srcCount">0</span></summary><div class="pickBox" style="background:var(--blue2)"><div class="softTitle">مصادر الفروع <span class="pill">فروع فقط</span></div><div class="toolbar"><button onclick="sel('src','branch',true)">تحديد الفروع</button><button onclick="sel('src','branch',false)">إلغاء الفروع</button><button onclick="sel('src','all',true)">تحديد الكل</button></div><div class="locGrid" id="srcBranches"></div><div class="softTitle" style="margin-top:10px;background:linear-gradient(90deg,var(--gold2),var(--green2))">مصادر المستودعات <span class="pill">مستودعات فقط</span></div><div class="toolbar"><button onclick="sel('src','wh',true)">تحديد المستودعات</button><button onclick="sel('src','wh',false)">إلغاء المستودعات</button><button onclick="sel('src','all',false)">إلغاء الكل</button></div><div class="locGrid" id="srcWh"></div></div></details><details open style="margin-top:10px"><summary style="background:var(--green2);border-color:#bbf7d0">🟢 اختيار الوجهات <span class="counter" id="dstCount">0</span></summary><div class="pickBox" style="background:var(--green2)"><div class="softTitle">وجهات الفروع <span class="pill">فروع فقط</span></div><div class="toolbar"><button onclick="sel('dst','branch',true)">تحديد الفروع</button><button onclick="sel('dst','branch',false)">إلغاء الفروع</button><button onclick="sel('dst','all',true)">تحديد الكل</button></div><div class="locGrid" id="dstBranches"></div><div class="softTitle" style="margin-top:10px;background:linear-gradient(90deg,var(--gold2),var(--green2))">وجهات المستودعات <span class="pill">مستودعات كوجهات</span></div><div class="toolbar"><button onclick="sel('dst','wh',true)">تحديد المستودعات</button><button onclick="sel('dst','wh',false)">إلغاء المستودعات</button><button onclick="sel('dst','all',false)">إلغاء الكل</button></div><div class="locGrid" id="dstWh"></div></div></details></div>
+<div class="card"><h3>حدود الفروع الخاصة (منتجات جديدة / بدون مبيعات + السحب الاستثنائي بكمية محددة + الزر الخاص أعلاه)</h3><div class="muted">حدد لكل فرع الحد الأدنى للتحويل (أقل كمية مقبولة تُنفذ، ويُستخدم أيضًا كهدف تعبئة بالزر الخاص أعلاه) والحد الأعلى للتحويل (الهدف: كم يوصل مخزون الفرع بعد التحويل). يمكنك تحديد حد أدنى فقط لفرع بدون حد أعلى. أي فرع تتركه فارغًا يبقى يعمل بالإعدادات العامة أدناه، ولا يدخل أبدًا في الزر الخاص أعلاه.</div><details><summary>عرض / تعديل حدود الفروع <span class="counter" id="blCount">0</span></summary><div class="pickBox"><div id="branchLimitsGrid" class="locGrid" style="grid-template-columns:1fr"></div></div></details><button class="full" onclick="saveBranchLimits()">حفظ حدود الفروع الخاصة</button><button class="full" style="margin-top:6px" onclick="loadBranchLimits()">تحديث القيم من الشيت</button><button class="full btnRed" style="margin-top:6px" onclick="clearBranchLimits()">تصفير كل حدود الفروع الخاصة</button></div>
+<div class="card"><h3>حدود المستودعات الخاصة (حد تفعيل مستقل لكل مستودع)</h3><div class="muted">حدد لكل مستودع حد التفعيل الخاص فيه (فوقه يسحب المستودع كامل مخزونه، عنده أو تحته يعتبر غير متاح كمصدر). أي مستودع تتركه فارغًا يستخدم "حد المستودع" العام بالإعدادات السريعة أدناه.</div><details><summary>عرض / تعديل حدود المستودعات</summary><div id="whLimitsGrid" class="locGrid" style="grid-template-columns:1fr;margin-top:8px"></div><button class="full" onclick="saveWhLimits()">حفظ حدود المستودعات الخاصة</button><button class="full" style="margin-top:6px" onclick="loadWhLimits()">تحديث القيم من الشيت</button><button class="full btnRed" style="margin-top:6px" onclick="clearWhLimits()">تصفير كل حدود المستودعات الخاصة</button></details></div>
+<div class="card accent-violet" id="settings"><h3>الإعدادات السريعة</h3><div class="grid2">
+<div style="background:var(--blue2);border-radius:10px;padding:6px"><label>تغطية الوجهة</label><input id="cover" value="15" type="number"></div>
+<div style="background:var(--blue2);border-radius:10px;padding:6px"><label>تغطية المصدر</label><input id="keep" value="20" type="number"></div>
+<div style="background:var(--cyan2);border-radius:10px;padding:6px"><label>حد المستودع <span style="font-size:10px;color:#991b1b">حد تفعيل: فوقه يسحب الكل</span></label><input id="wh" value="20" type="number"></div>
+<div style="background:var(--cyan2);border-radius:10px;padding:6px"><label>أقل تحويل <span style="font-size:10px;color:#64748b">0 = توزيع طبيعي حسب الاحتياج</span></label><input id="min" value="4" type="number"></div>
+<div style="background:var(--red2);border-radius:10px;padding:6px"><label>كمية بلا مبيعات للوجهة <span style="font-size:10px;color:#991b1b">0 = رفض ورفع الكمية</span></label><input id="nosales" value="0" type="number"></div>
+<div style="background:var(--red2);border-radius:10px;padding:6px"><label>حد مخزون الوجهة للمبيعات الصفرية</label><input id="zeroSalesStockLimit" value="3" type="number"></div>
+<div style="background:var(--red2);border-radius:10px;padding:6px"><label>احتفاظ المصدر إذا مبيعاته 0</label><input id="zeroKeep" value="6" type="number"></div>
+<div style="background:var(--red2);border-radius:10px;padding:6px"><label>رفع مبيعات الفرع <span style="font-size:10px;color:#64748b">0=طبيعي؛ لو المبيعات أقل من الرقم يُفترض = هذا الرقم</span></label><input id="salesRaise" value="0" type="number"></div>
+<div style="background:var(--green2);border-radius:10px;padding:6px"><label>كمية Turbo اليدوي</label><input id="manual" value="0" type="number"></div>
+<div style="background:var(--green2);border-radius:10px;padding:6px"><label>كمية الإبقاء في المصدر <span style="font-size:10px;color:#64748b">0 = طبيعي، غير مفعل بالسحب الاستثنائي</span></label><input id="keepQty" value="0" type="number"></div>
+<div style="background:var(--green2);border-radius:10px;padding:6px"><label>رفع الاحتياج الأقل من أقل تحويل <span style="font-size:10px;color:#64748b">0 = رفض كالمعتاد؛ غير مفعل بالسحب الاستثنائي</span></label><input id="raiseSmallNeed" value="0" type="number"></div>
+<div style="background:var(--gold2);border-radius:10px;padding:6px"><label>كمية السحب الاستثنائي لكل وجهة <span style="font-size:10px;color:#64748b">تُستخدم فقط للفروع بدون حد خاص</span></label><input id="exceptionQty" value="4" type="number"></div>
+<div style="background:var(--gold2);border-radius:10px;padding:6px"><label>أقل كمية للتحويل في السحب الكامل</label><input id="exceptionSplitMin" value="1" type="number"></div>
+<div style="background:var(--violet);border-radius:10px;padding:6px"><label>منع التكدس بعد يوم</label><input id="maxCover" value="30" type="number"></div>
+</div><label style="margin-top:8px">طريقة السحب الكامل</label><select id="exceptionMode"><option>كمية محددة لكل وجهة</option><option>سحب كامل وتقسيم على الوجهات</option></select><label style="margin-top:8px">التعامل مع مبيعات صفرية</label><select id="zeroSalesMode"><option>السماح بتوزيع كمية تجريبية حسب حد المخزون</option><option selected>رفض التوزيع إذا كانت المبيعات صفرية وفي المخزون كمية</option></select><div class="tiny">كل القيم يتم أخذها من اللوحة كما تكتبها. إذا كتبت 0 في كمية بلا مبيعات أو Turbo اليدوي فلن يتم التوزيع لهذا الشرط. كمية الإبقاء في المصدر، رفع الاحتياج الأقل من أقل تحويل، ورفع مبيعات الفرع تعمل بـ Turbo وBIG DATA (وكمية الإبقاء ورفع الاحتياج بباقي الأزرار أيضًا) ولا تعمل بالسحب الاستثنائي. مثال رفع مبيعات الفرع: مبيعاته 0، حطيت الخيار = 6، معناته لو المبيعات أقل من 6 تُحسب كأنها 6 لغرض الاحتياج فقط. مثال رفع الاحتياج: احتياج محسوب 2، أقل تحويل 3، لو حطيت رفع الاحتياج = 4 يتم رفع الكمية المحسوبة مباشرة إلى 4 (الرقم الذي حطيته أنت بالضبط، وليس أقل تحويل) وينفذ التحويل بدل رفضه، بشرط توفر 4 بالمصدر. لو حطيت 0 لا يرفع شيء ويُرفض كالمعتاد. السحب الاستثنائي بكل صوره يتجاهل كل هذي الخيارات الخمسة (كمية بلا مبيعات، حد مخزون المبيعات الصفرية، احتفاظ المصدر صفر المبيعات، رفع مبيعات الفرع، كمية الإبقاء في المصدر، رفع الاحتياج) بالإضافة لأقل تحويل العام ومنع التكدس، ويكسر قيود العرض دائمًا.</div><button class="full" onclick="saveSettings()">حفظ اختيارات اللوحة</button>
+</div>
+<div class="card accent-blue" id="monitor"><h3>مركز المراقبة</h3><div class="metricGrid"><div class="metric"><div class="name">عدد المنتجات</div><b id="products">0</b></div><div class="metric"><div class="name">المنتج الحالي</div><b id="done">0</b></div><div class="metric"><div class="name">التقدم</div><b id="p">0%</b></div><div class="metric"><div class="name">التحويلات</div><b id="t">0</b></div><div class="metric"><div class="name">الكمية</div><b id="q">0</b></div><div class="metric"><div class="name">الفروع المغطاة</div><b id="coveredPct">0%</b></div><div class="metric"><div class="name">المنتجات المرفوضة</div><b id="rejected">0</b></div><div class="metric"><div class="name">المنتجات الحرجة</div><b id="critical">0</b></div><div class="metric"><div class="name">الوقت</div><b id="elapsed">00:00:00</b></div><div class="metric"><div class="name">السرعة / ثانية</div><b id="speed">0</b></div><div class="metric"><div class="name">المتبقي المتوقع</div><b id="eta">--</b></div><div class="metric"><div class="name">دفعة BIG DATA التلقائية</div><b id="batch">AUTO</b></div><div class="metric"><div class="name">أخطاء متجاوزة</div><b id="errors">0</b></div><div class="metric"><div class="name">غير مغطاة</div><b id="u">0</b></div><div class="metric" id="lockBox"><div class="name">حالة القفل</div><b id="lock">غير مقفل</b></div><div class="metric"><div class="name">طلب الإلغاء</div><b id="cancel">لا</b></div></div><button class="full btnBlue" style="margin-top:10px" onclick="refreshMonitor()">🔄 تحديث المراقبة يدويًا</button></div>
+<div class="card accent-green" id="exports"><h3>⬇️ تنزيل كل النتائج - مكان واحد</h3>
+<div class="softTitle">📦 نتائج التوزيع</div>
+<div class="cmdGrid" style="margin-top:6px"><button onclick="exportFile('aliExportBranches')">تحويلات الفروع</button><button onclick="exportFile('aliExportWarehouses')">تحويلات المستودعات</button></div>
+<button class="full" style="margin-top:6px" onclick="exportFile('aliExportAll')">تنزيل الكل بملف واحد (صفحتين)</button>
+<button class="full" style="margin-top:6px" onclick="exportFile('aliExportRaise')">صفحة "المنتجات التي يحتاج لها رفع الكمية"</button>
+<button class="full" style="margin-top:6px" onclick="exportFile('aliExportSummary')">التحليل الملخص</button>
+<div class="softTitle" style="margin-top:12px">📉 تقارير النواقص</div>
+<div class="cmdGrid" style="margin-top:6px"><button onclick="exportFile('aliExportShortageWarehouses')">نواقص الفروع من المستودعات</button><button onclick="exportFile('aliExportShortageBranches')">نواقص الفروع من الفروع</button></div>
+<div class="softTitle" style="margin-top:12px">🔁 تدقيق الباركود المكرر</div>
+<div class="cmdGrid" style="margin-top:6px"><button onclick="exportFile('aliExportDupBarcodes')">تكرار صفحة الاحتياج</button><button onclick="exportFile('aliExportStockDupBarcodes')">تكرار صفحة المخزون</button></div>
+</div>
+<div class="card accent-gold" style="background:#f8fafc;display:none" id="dbSizeCard"><h3>💾 حجم قاعدة البيانات الداخلية</h3><div class="muted">نعم، تكبر هذي القاعدة بمرور الوقت: كل تشغيل (Turbo/BIG DATA/...) يحفظ سجل كل تحويل بداخلها بشكل دائم، ولا يوجد حذف تلقائي.</div><div class="msg" id="dbStatsMsg" style="margin-top:8px">جاري الفحص...</div><button class="full btnRed" style="margin-top:8px" onclick="dbClean()">🧹 تفريغ سجل التحويلات القديم الآن</button></div>
+<div class="card" style="background:#f8fafc;display:none" id="passwordCard"><h3>🔑 كلمة مرور الدخول</h3><div class="muted" id="passStatus">جاري التحقق...</div><div class="grid2" style="margin-top:8px"><input type="password" id="passOld" placeholder="كلمة المرور الحالية (اتركها فارغة إن لم توجد)"><input type="password" id="passNew" placeholder="كلمة المرور الجديدة"></div><button class="full btnBlue" onclick="changePassword()">حفظ كلمة المرور</button><button class="full btnRed" style="margin-top:6px" onclick="removePassword()">إلغاء كلمة المرور نهائيًا</button><div class="tiny" style="margin-top:6px">هذا برنامج سطح مكتب محلي: كلمة المرور تمنع أي شخص يفتح جهازك من الدخول للوحة، وتُطلب في كل مرة يُفتح فيها البرنامج. لمشاركة البرنامج مع أشخاص محددين فقط، انسخ لهم ملف البرنامج (exe) وأعطهم كلمة المرور التي تحددها أنت هنا - من دونها لا يقدر أحد يدخل حتى لو نسخ الملف.</div></div>
+</div></section><section class="page" id="page-categories"><div class="wrap">
+<div class="card accent-gold"><h3>🏷️ هيكلة فئات المنتجات</h3><div class="muted">يتم فحص الفئات (رئيسية/فرعية/براند) تلقائيًا بعد رفع الملف. اختر ما تحتاجه واضغط "حفظ التحديد" ليصبح فلترًا جاهزًا لتقارير نواقص الفروع - لا يؤثر على Turbo/BIG DATA إطلاقًا.</div>
+<div class="cmdGrid" style="grid-template-columns:repeat(4,1fr);margin-top:10px">
+<div class="statBox"><b id="catStatMains">0</b><span>فئة رئيسية</span></div>
+<div class="statBox"><b id="catStatSubs">0</b><span>فئة فرعية</span></div>
+<div class="statBox"><b id="catStatBrands">0</b><span>براند</span></div>
+<div class="statBox"><b id="catStatNone">0</b><span>منتج بلا فئة</span></div>
+</div>
+<div class="grid2" style="margin-top:12px"><select id="catPageScope" onchange="loadCategoryPage()"><option value="need">فئات صفحة "المنتجات التي يحتاج لها توزيع"</option><option value="stock" selected>فئات عامة (كل صفحة المخزون)</option><option value="both">الاثنان معًا</option></select><input id="catSearch" placeholder="🔍 ابحث باسم فئة أو براند..." oninput="renderCategoryPage()"></div>
+<div class="msg" id="catSelSummary" style="margin-top:8px">لا يوجد تحديد حاليًا - كل الفئات ستدخل التشغيل.</div>
+<div class="grid2" style="margin-top:6px"><button class="btnGreen" onclick="saveCategorySelection()">💾 حفظ التحديد</button><button class="btnRed" onclick="clearCategorySelection()">مسح التحديد (كل الفئات)</button></div>
+<button class="full" style="margin-top:6px" onclick="exportFile('aliExportCategoryAudit')">⬇️ تنزيل كل الفئات الموجودة (Excel)</button>
+<div id="categoryAccordion" style="margin-top:14px"></div>
+</div>
+</div></section><section class="page" id="page-odoo"><div class="wrap">
+<div class="card accent-dark"><h3>🔗 ربط أودو (Odoo) <span class="pill">تجريبي - للعرض على الشركة</span></h3><div class="muted">هذا مصدر بيانات منفصل تمامًا عن ملف Excel. لا يؤثر إطلاقًا على أوامر التوزيع الحالية التي تعمل على ملف Excel - الاثنان يعملان بشكل مستقل تمامًا.</div></div>
+
+<div class="card accent-blue"><h3>1️⃣ بيانات الاتصال</h3>
+<div class="grid2"><div><label>رابط خادم أودو</label><input id="odooUrl" placeholder="https://company.odoo.com"></div><div><label>اسم قاعدة البيانات</label><input id="odooDb" placeholder="company_db"></div></div>
+<div class="grid2" style="margin-top:8px"><div><label>البريد / اسم المستخدم</label><input id="odooUser" placeholder="user@company.com"></div><div><label>مفتاح API</label><input id="odooKey" type="password" placeholder="API Key"></div></div>
+<button class="full btnBlue" style="margin-top:8px" onclick="odooTestConnection()">اختبار الاتصال</button>
+<div class="msg" id="odooConnMsg">لم يتم الاتصال بعد.</div>
+<div class="tiny">مفتاح الـ API يُنشأ من داخل أودو: الإعدادات الشخصية ← أمان الحساب ← مفاتيح API الجديدة. لا تستخدم كلمة مرور حسابك مباشرة.</div>
+</div>
+
+<div class="card accent-gold"><h3>2️⃣ ربط الفروع والمستودعات بمواقع أودو</h3><div class="muted">لازم قبل أي تنزيل بيانات. يربط كل فرع/مستودع عندنا بموقعه المطابق داخل أودو.</div>
+<button class="full" style="margin-top:8px" onclick="odooDiscover()">اكتشاف مواقع أودو تلقائيًا</button>
+<div id="odooLocMapGrid" class="locGrid" style="grid-template-columns:1fr;margin-top:10px"></div>
+<button class="full btnGreen" style="margin-top:8px" onclick="odooSaveLocMap()">حفظ الربط</button>
+<div class="msg" id="odooMapMsg"></div>
+</div>
+
+<div class="card accent-green"><h3>3️⃣ تنزيل البيانات من أودو</h3>
+<div class="cmdGrid">
+<div class="cmdCard blue" onclick="odooSync('syncProducts')"><div class="ic">🏷️</div><div class="ti">تنزيل المنتجات</div><div class="de">الباركود والاسم والفئة لكل منتج.</div></div>
+<div class="cmdCard blue" onclick="odooSync('syncStock')"><div class="ic">📦</div><div class="ti">تنزيل المخزون</div><div class="de">الكمية الحالية في كل فرع/مستودع مربوط.</div></div>
+<div class="cmdCard blue" onclick="odooSync('syncIncoming')"><div class="ic">🚚</div><div class="ti">تنزيل "في التحويل"</div><div class="de">الحركات المؤكدة التي لم تصل بعد.</div></div>
+<div class="cmdCard blue" onclick="odooSync('syncPurchases')"><div class="ic">🧾</div><div class="ti">تنزيل آخر مشتريات</div><div class="de">تاريخ وكمية آخر أمر شراء لكل منتج.</div></div>
+</div>
+<div class="softTitle" style="margin-top:10px">📈 المبيعات - حدد عدد الأيام بنفسك</div>
+<div class="grid2"><div><label>مدى المبيعات الأول (يوم)</label><input id="odooSalesDays1" value="30" type="number"></div><div><label>مدى المبيعات الثاني (يوم)</label><input id="odooSalesDays2" value="90" type="number"></div></div>
+<div class="tiny">مثال: تقدر تكتب 100 بدل 30، أو 365 بدل 90 - أي مدى تحتاجه بالضبط، وليس فقط 30/90.</div>
+<div class="grid2" style="margin-top:8px"><button onclick="odooSyncSales(1)">تنزيل مبيعات المدى الأول</button><button onclick="odooSyncSales(2)">تنزيل مبيعات المدى الثاني</button></div>
+<div class="softTitle" style="margin-top:10px">🔁 حركات النقل والاستلام - حدد عدد الأيام</div>
+<div class="grid2"><div><label>آخر نقل فعلي (يوم)</label><input id="odooMovedDays" value="3" type="number"></div><div><label>آخر استلام (يوم)</label><input id="odooRec10Days" value="10" type="number"></div></div>
+<div class="grid2" style="margin-top:8px"><button onclick="odooSync('syncMoved', el('odooMovedDays').value)">تنزيل آخر نقل</button><button onclick="odooSync('syncRec10', el('odooRec10Days').value)">تنزيل آخر استلام</button></div>
+<div class="softTitle" style="margin-top:12px;background:linear-gradient(90deg,var(--gold2),var(--green2))">⚡ مزامنة شاملة (كل ما سبق دفعة واحدة)</div>
+<button class="full btnDark" style="margin-top:6px" onclick="odooSyncAll()">مزامنة شاملة الآن</button>
+<div class="bar" style="margin-top:8px"><span id="odooBar"></span></div>
+<div class="msg" id="odooSyncMsg">لم تتم أي مزامنة بعد.</div>
+</div>
+</div></section>
+<section class="page" id="page-branches"><div class="wrap">
+<div class="card accent-violet"><h3>👥 إدارة حسابات الفروع</h3><div class="muted">هنا توافق على طلبات انضمام الفروع الجديدة، وتتحكم بصلاحيات كل فرع (أي أوامر تشغيل مسموحة له)، وتقدر تعلّق أو تحذف أي فرع - المحذوف يروح لسلة المحذوفات وتقدر تسترجعه.</div></div>
+<div class="card"><h3>🆕 طلبات انضمام بانتظار الموافقة</h3><div id="brPendingList" class="msg">جاري التحميل...</div></div>
+<div class="card"><h3>✅ الفروع المعتمدة</h3><div id="brApprovedList" class="msg">جاري التحميل...</div></div>
+<div class="card"><h3>🗑️ سلة المحذوفات</h3><div class="muted">الفروع المحذوفة تبقى هنا لحد ما تسترجعها أو تحذفها نهائيًا.</div><div id="brTrashList" class="msg" style="margin-top:8px">جاري التحميل...</div></div>
+</div></section>
+<section class="page" id="page-chat"><div class="wrap">
+<div class="card accent-blue"><h3>💬 الدردشة</h3><div class="muted" id="chatIntro">دردشة مباشرة بينك وبين الإدارة، بالإضافة لأي مجموعات تمت إضافتك لها.</div></div>
+<div id="chatBranchTools" style="display:none">
+  <div class="card"><h3>🤝 طلب دردشة مع فرع آخر</h3><div class="muted">لازم توافق الإدارة أولًا قبل ما تقدر تبدأ الدردشة مع أي فرع ثاني.</div>
+    <select id="peerTargetSelect" style="margin-top:8px"><option value="">جاري تحميل قائمة الفروع...</option></select>
+    <button class="full btnBlue" style="margin-top:8px" onclick="sendPeerRequest()">إرسال طلب الدردشة</button>
+    <div class="lockErr" id="peerRequestMsg" style="color:#166534"></div>
+  </div>
+</div>
+<div id="chatAdminTools" style="display:none">
+  <div class="card"><h3>🤝 طلبات دردشة بين الفروع بانتظار الموافقة</h3><div id="peerRequestsList" class="msg">جاري التحميل...</div></div>
+  <div class="card"><h3>➕ إنشاء مجموعة جديدة</h3>
+    <input id="newGroupName" placeholder="اسم المجموعة (مثال: إعلانات عامة)">
+    <div class="tiny" style="margin:6px 0 4px">اختر الفروع اللي تدخل هذي المجموعة:</div>
+    <div id="groupCandidates" class="msg">جاري التحميل...</div>
+    <button class="full btnGreen" style="margin-top:8px" onclick="createNewGroup()">إنشاء المجموعة</button>
+    <div class="lockErr" id="newGroupMsg" style="color:#166534"></div>
+  </div>
+  <div class="card"><h3>🗂️ قوالب الرسائل</h3><div class="muted">أضف نصوصًا جاهزة تقدر تختارها بسرعة قبل الإرسال لأي فرع.</div>
+    <div class="grid2"><input id="tplTitle" placeholder="عنوان مختصر للقالب"><input id="tplBody" placeholder="نص القالب الكامل"></div>
+    <button class="full" style="margin-top:6px" onclick="addNewTemplate()">➕ إضافة القالب</button>
+    <div id="templatesList" style="margin-top:8px"></div>
+  </div>
+  <div class="card"><h3>🗑️ سلة محذوفات المحادثات</h3><div id="chatTrashList" class="msg">جاري التحميل...</div></div>
+</div>
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="display:grid;grid-template-columns:230px 1fr;min-height:480px">
+    <div style="border-left:1px solid var(--line);background:#f8fafc;overflow:auto;max-height:620px">
+      <div id="conversationList" class="msg" style="margin:8px;border:0">جاري التحميل...</div>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div id="chatHeader" style="padding:10px 14px;border-bottom:1px solid var(--line);font-weight:900;font-size:13px">اختر محادثة من القائمة</div>
+      <div id="chatThread" style="flex:1;overflow:auto;padding:12px;max-height:480px;display:flex;flex-direction:column;gap:8px"></div>
+      <div id="chatComposeBar" style="border-top:1px solid var(--line);padding:10px;display:none">
+        <div id="chatTemplatesBar" style="display:none;margin-bottom:6px"></div>
+        <div id="recordIndicator" style="display:none;align-items:center;gap:6px;background:#fef2f2;color:#991b1b;border-radius:10px;padding:6px 10px;margin-bottom:6px;font-size:11px;font-weight:900;cursor:pointer" onclick="stopRecording()"></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <input id="chatFileInput" type="file" style="display:none" onchange="onChatFilePicked()">
+          <button style="min-height:44px" onclick="document.getElementById('chatFileInput').click()">📎</button>
+          <button style="min-height:44px" onclick="toggleRecording('audio')" title="رسالة صوتية">🎤</button>
+          <button style="min-height:44px" onclick="toggleRecording('video')" title="رسالة فيديو">📹</button>
+          <button id="chatTemplatesBtn" style="display:none;min-height:44px" onclick="toggleTemplatesBar()">🗂️ قوالب</button>
+          <input id="chatMsgInput" placeholder="اكتب رسالتك..." style="flex:1" onkeydown="if(event.key==='Enter')sendChatMessage()">
+          <button class="btnGreen" style="min-height:44px" onclick="sendChatMessage()">إرسال</button>
+        </div>
+        <div id="chatFileName" class="tiny" style="margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div></section>
+</main></div>
+<script src="firebase-config.js"></script>
+<script src="engine/xlsx.full.min.js"></script>
+<script src="engine/locations.js"></script>
+<script src="engine/engine.js"></script>
+<script src="engine/excelLoader.js"></script>
+<script src="firebase-client.js"></script>
+<script src="renderer.js"></script>
+<script src="branch-ui.js"></script>
+<script src="chat-ui.js"></script>
+<script src="call-ui.js"></script>
+<script src="home-ui.js"></script>
+</body></html>
