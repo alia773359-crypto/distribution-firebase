@@ -35,8 +35,8 @@ async function authSignIn(email, password) {
 }
 function mapAuthError(data) {
   const code = (data && data.error && data.error.message) || '';
-  if (code.includes('EMAIL_EXISTS')) return 'اسم المستخدم هذا مستخدم من قبل - اختر اسمًا آخر.';
-  if (code.includes('EMAIL_NOT_FOUND') || code.includes('INVALID_LOGIN_CREDENTIALS') || code.includes('INVALID_PASSWORD')) return 'اسم المستخدم أو كلمة المرور غير صحيحة.';
+  if (code.includes('EMAIL_EXISTS')) return 'رقم الهاتف هذا مسجّل من قبل بحساب آخر - تأكد من رقمك، أو تواصل مع الإدارة لو تعتقد إنه خطأ.';
+  if (code.includes('EMAIL_NOT_FOUND') || code.includes('INVALID_LOGIN_CREDENTIALS') || code.includes('INVALID_PASSWORD')) return 'بيانات الدخول غير صحيحة (تأكد من رقم الهاتف/كلمة المرور).';
   if (code.includes('WEAK_PASSWORD')) return 'كلمة المرور يجب أن تكون 6 خانات على الأقل (شرط Firebase).';
   if (code.includes('TOO_MANY_ATTEMPTS')) return 'محاولات كثيرة جدًا - انتظر شوي وحاول من جديد.';
   return 'تعذّرت العملية: ' + (code || 'خطأ غير معروف');
@@ -103,7 +103,8 @@ function dbErrorMessage(status, data) {
 }
 
 function randomHex(len) { const arr = new Uint8Array(len); crypto.getRandomValues(arr); return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join(''); }
-function safeUsername(s) { return String(s || '').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, ''); }
+function safeUsername(s) { return String(s || '').trim(); } // اسم عرض حر (عربي أو إنجليزي) - ما يحتاج تفرّد، لأن رقم الهاتف هو المُعرِّف الفريد الآن
+function cleanPhoneNumber(p) { return String(p || '').replace(/[^0-9+]/g, ''); }
 function safeKey(s) { return String(s).replace(/[.#$\[\]/]/g, '_'); }
 
 
@@ -177,14 +178,15 @@ async function ensureExcelLoaded() {
 // ---------- حسابات الفروع (كل فرع = حساب Firebase Auth حقيقي، بريد وهمي من اسم المستخدم) ----------
 async function branchRegister(displayName, username, password, phone, email) {
   if (!displayName || !String(displayName).trim()) return { ok: false, message: 'اكتب اسم الفرع.' };
-  const uname = safeUsername(username);
-  if (!uname) return { ok: false, message: 'اكتب اسم مستخدم صالح (أحرف/أرقام إنجليزية بدون مسافات).' };
+  const uname = safeUsername(username) || String(displayName).trim(); // اسم عرض حر - لو ما كتب اسم مستخدم منفصل نستخدم اسم الفرع نفسه
   if (!password || String(password).length < 6) return { ok: false, message: 'كلمة المرور يجب أن تكون 6 خانات على الأقل (شرط أمان Firebase).' };
-  const cleanPhone = String(phone || '').replace(/[^0-9+]/g, '');
-  if (!cleanPhone) return { ok: false, message: 'اكتب رقم هاتف صحيح (يشمل رمز الدولة، مثال: 9665xxxxxxxx).' };
+  const cleanPhone = cleanPhoneNumber(phone);
+  if (!cleanPhone || cleanPhone.length < 8) return { ok: false, message: 'اكتب رقم هاتف صحيح (يشمل رمز الدولة، مثال: 9665xxxxxxxx) - هذا رقمك المُعرِّف لتسجيل الدخول لاحقًا.' };
   const cleanEmail = String(email || '').trim();
   try {
-    const cred = await authSignUp(uname + FAKE_EMAIL_DOMAIN, password);
+    // رقم الهاتف هو المُعرِّف الفريد الآن لتسجيل الدخول (وليس اسم المستخدم) - يسمح لعدة فروع
+    // مختلفة تستخدم نفس اسم العرض (مثلاً "محمد") طالما أرقام هواتفهم مختلفة فعليًا.
+    const cred = await authSignUp(cleanPhone + FAKE_EMAIL_DOMAIN, password);
     const payload = { displayName: String(displayName).trim(), username: uname, phone: cleanPhone, email: cleanEmail, status: 'pending', createdAt: new Date().toISOString(), approvedAt: null, deletedAt: null, lastLoginAt: null };
     // نكتب بيانات الفرع مباشرة برمز الدخول المؤقت الناتج من التسجيل، ونتحقق فعليًا من نجاح
     // الكتابة (لا نفترضها) - أحيانًا يحتاج رمز الدخول الجديد ثانية أو ثانيتين حتى يُعترف فيه
@@ -197,15 +199,15 @@ async function branchRegister(displayName, username, password, phone, email) {
     if (!saved) { await new Promise(res => setTimeout(res, 1500)); saved = await attemptWrite(); }
     if (!saved) return { ok: false, message: 'تم إنشاء حسابك لكن تعذّر حفظ طلبك بقاعدة البيانات - جرّب التسجيل مرة ثانية بعد قليل، أو تواصل مع الإدارة مباشرة.' };
     fetch(`${DB_URL}/settings/adminEmail.json?auth=${cred.idToken}`).then(r => r.json()).then(adminEmail => {
-      if (adminEmail) sendEmailNotification(adminEmail, 'طلب انضمام فرع جديد - ' + payload.displayName, 'فرع جديد "' + payload.displayName + '" (اسم مستخدم: ' + uname + ') أرسل طلب انضمام وينتظر موافقتك.');
+      if (adminEmail) sendEmailNotification(adminEmail, 'طلب انضمام فرع جديد - ' + payload.displayName, 'فرع جديد "' + payload.displayName + '" (هاتف: ' + cleanPhone + ') أرسل طلب انضمام وينتظر موافقتك.');
     }).catch(() => { /* الإشعار اختياري */ });
-    return { ok: true, message: 'تم إرسال طلب الانضمام. انتظر موافقة الإدارة قبل تسجيل الدخول.' };
+    return { ok: true, message: 'تم إرسال طلب الانضمام. انتظر موافقة الإدارة قبل تسجيل الدخول (سجّل الدخول لاحقًا برقم هاتفك وكلمة المرور).' };
   } catch (e) { return { ok: false, message: e.message }; }
 }
-async function branchLogin(username, password) {
-  const uname = safeUsername(username);
+async function branchLogin(phone, password) {
+  const cleanPhone = cleanPhoneNumber(phone);
   try {
-    const cred = await authSignIn(uname + FAKE_EMAIL_DOMAIN, password);
+    const cred = await authSignIn(cleanPhone + FAKE_EMAIL_DOMAIN, password);
     setSession({ role: 'branch', uid: cred.localId, idToken: cred.idToken, refreshToken: cred.refreshToken, tokenExpiresAt: Date.now() + Number(cred.expiresIn) * 1000 });
     const acc = await dbGet('branches/' + cred.localId);
     if (!acc || acc.deletedAt) { clearSession(); return { ok: false, message: 'حساب غير موجود.' }; }
@@ -242,7 +244,10 @@ async function branchRequestProfileChange(displayName, phone, email) {
     await dbUpdate('branches/' + s.uid, {
       pendingChanges: { displayName: String(displayName || '').trim(), phone: cleanPhone, email: String(email || '').trim(), requestedAt: new Date().toISOString() }
     });
-    return { ok: true, message: 'تم إرسال طلب تعديل بياناتك للإدارة - بياناتك الحالية تبقى فعّالة لحد ما توافق الإدارة على التعديل.' };
+    // ملاحظة مهمة: تغيير رقم الهاتف هنا يحدّث رقم التواصل/واتساب المعروض فقط - رقم تسجيل
+    // الدخول الفعلي يبقى دائمًا نفس الرقم اللي سجّلت فيه أول مرة (قيد تقني من Firebase
+    // Authentication، ما نقدر نغيّره من خلال موافقة الإدارة وحدها بدون خادم خلفي).
+    return { ok: true, message: 'تم إرسال طلب تعديل بياناتك للإدارة - بياناتك الحالية تبقى فعّالة لحد ما توافق الإدارة على التعديل. ملاحظة: لو غيّرت رقم الهاتف هنا، هذا يحدّث رقم التواصل/واتساب المعروض بس - رقم تسجيل الدخول يبقى نفس الرقم اللي سجّلت فيه أول مرة.' };
   } catch (e) { return { ok: false, message: e.message || String(e) }; }
 }
 async function adminApproveProfileChange(branchId) {
@@ -268,7 +273,7 @@ async function branchChangeOwnPassword(oldPassword, newPassword) {
     if (!s || s.role !== 'branch') return { ok: false, message: 'سجّل الدخول كفرع أولاً.' };
     const acc = await dbGet('branches/' + s.uid);
     if (!acc) return { ok: false, message: 'حساب غير موجود.' };
-    await authSignIn(acc.username + FAKE_EMAIL_DOMAIN, oldPassword || '');
+    await authSignIn(acc.phone + FAKE_EMAIL_DOMAIN, oldPassword || '');
   } catch (e) { return { ok: false, message: 'كلمة المرور الحالية غير صحيحة.' }; }
   if (!newPassword || String(newPassword).length < 6) return { ok: false, message: 'كلمة المرور الجديدة يجب أن تكون 6 خانات على الأقل.' };
   try {
@@ -772,7 +777,7 @@ function startCallPolling() {
         });
       }
     } catch (e) { /* تجاهل أخطاء الفحص الدوري */ }
-  }, 2000);
+  }, 4000); // خفّضناها من 2 ثانية لـ4 - كانت تسوي طلب شبكة مستمر باستمرار طوال الجلسة، وهذا سبب محتمل قوي للبطء اللي لاحظته
 }
 
 
@@ -781,6 +786,17 @@ function downloadAoaAsXlsx(sheets, filename) {
   const wb = window.XLSX.utils.book_new();
   sheets.forEach(s => {
     const ws = window.XLSX.utils.aoa_to_sheet(s.rows);
+    // عرض أعمدة تلقائي حسب أطول محتوى بكل عمود، وفلتر تلقائي بأعلى الجدول - هذي التحسينات
+    // مدعومة بالنسخة المجانية. الألوان والخط الغامق تحتاج ترخيص مدفوع لمكتبة SheetJS
+    // (Pro)، وما توفرت لهذا الحل بدون سيرفر - إن احتجتها لاحقًا بإمكاننا مراجعتها.
+    if (s.rows.length) {
+      ws['!cols'] = s.rows[0].map((_, colIdx) => {
+        let maxLen = 8;
+        s.rows.forEach(r => { const v = r[colIdx]; if (v !== undefined && v !== null) maxLen = Math.max(maxLen, String(v).length); });
+        return { wch: Math.min(45, maxLen + 3) };
+      });
+      ws['!autofilter'] = { ref: window.XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: s.rows.length - 1, c: s.rows[0].length - 1 } }) };
+    }
     window.XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31)); // أسماء أوراق Excel محدودة بـ٣١ حرف
   });
   window.XLSX.writeFile(wb, filename + '.xlsx');
@@ -860,7 +876,7 @@ async function markSheetUpdated(key) {
 // ملاحظة صريحة: هذا معطّل افتراضيًا. لتفعيله، سجّل حساب مجاني بـ emailjs.com (بدون بطاقة)
 // وعبّي بيانات EMAILJS_CONFIG بالأسفل بمعرّفاتك الخاصة. بدون هذي الخطوة، الإشعارات ما ترسل
 // (بصمت، بدون أي خطأ يعطّل باقي البرنامج) - الدردشة والحسابات تشتغل طبيعي بدونها تمامًا.
-const EMAILJS_CONFIG = { serviceId: '', templateId: '', publicKey: '' };
+const EMAILJS_CONFIG = { serviceId: 'service_1rrddy5', templateId: 'template_bfyy6ot', publicKey: 'lhmu_w92j8NqqUzfu' };
 async function sendEmailNotification(toEmail, subject, message) {
   if (!EMAILJS_CONFIG.serviceId || !toEmail) return; // غير مفعّل أو ما فيه بريد مسجّل - تجاهل بصمت
   try {
@@ -928,7 +944,10 @@ window.api = {
   sheets: { list: () => sheetUpdatesList(), markUpdated: (key) => markSheetUpdated(key) },
   settings: {
     getAdminEmail: async () => { try { return { ok: true, email: (await dbGet('settings/adminEmail')) || '' }; } catch (e) { return { ok: false, email: '' }; } },
-    setAdminEmail: async (email) => { try { requireAdminSession(); await dbSet('settings/adminEmail', String(email || '').trim()); return { ok: true, message: 'تم حفظ بريد الإدارة للإشعارات.' }; } catch (e) { return { ok: false, message: e.message || String(e) }; } }
+    setAdminEmail: async (email) => { try { requireAdminSession(); await dbSet('settings/adminEmail', String(email || '').trim()); return { ok: true, message: 'تم حفظ بريد الإدارة للإشعارات.' }; } catch (e) { return { ok: false, message: e.message || String(e) }; } },
+    getAdminPhone: async () => { try { return { ok: true, phone: (await dbGet('settings/adminPhone')) || '' }; } catch (e) { return { ok: false, phone: '' }; } },
+    setAdminPhone: async (phone) => { try { requireAdminSession(); const clean = String(phone || '').replace(/[^0-9+]/g, ''); await dbSet('settings/adminPhone', clean); return { ok: true, message: 'تم حفظ رقم هاتف الإدارة.' }; } catch (e) { return { ok: false, message: e.message || String(e) }; } },
+    badgeCount: async () => { try { if (!isAdminSession()) return { ok: true, count: 0 }; const pend = await adminListBranches('pending'); return { ok: true, count: pend.ok ? pend.rows.length : 0 }; } catch (e) { return { ok: true, count: 0 }; } }
   },
   call: {
     invite: (targetId, conversationId, kind, offer) => callInvite(targetId, conversationId, kind, offer),

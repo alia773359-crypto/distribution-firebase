@@ -77,8 +77,11 @@ async function applySessionUI() {
   } else if (s.role === 'admin') {
     banner.style.display = 'none';
     if (navBranches) navBranches.style.display = '';
+    const navNotifSettings = document.getElementById('navNotifSettings');
+    if (navNotifSettings) navNotifSettings.style.display = '';
     loadBranchesAdminAll();
     refreshPendingBadge();
+    if (typeof refreshNotifBell === 'function') refreshNotifBell();
   } else {
     banner.style.display = 'none';
   }

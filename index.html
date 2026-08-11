@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>منصة التوزيع الذكي</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0ea5e9">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0ea5e9">
@@ -132,7 +135,7 @@ body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;heig
 </div>
 <div id="branchLoginBlock" style="display:none">
 <div class="muted2">سجّل دخولك بحساب فرعك المعتمد من الإدارة</div>
-<input id="branchUser" placeholder="اسم المستخدم" onkeydown="if(event.key==='Enter')doBranchLogin()">
+<input id="branchUser" placeholder="رقم هاتفك المسجّل به" dir="ltr" style="text-align:left" onkeydown="if(event.key==='Enter')doBranchLogin()">
 <input type="password" id="branchPass" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doBranchLogin()">
 <button onclick="doBranchLogin()">دخول كفرع</button>
 <div class="lockErr" id="branchLoginErr"></div>
@@ -140,9 +143,9 @@ body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;heig
 <div id="branchRegisterBlock" style="display:none">
 <div class="muted2">أرسل طلب انضمام فرعك - ينتظر موافقة الإدارة قبل ما تقدر تسجّل دخول</div>
 <input id="regDisplayName" placeholder="اسم الفرع (مثال: فرع الشاطئ)">
-<input id="regUsername" placeholder="اسم مستخدم تختاره">
+<input id="regUsername" placeholder="اسم عرض (اختياري - أي اسم تحبه، عربي أو إنجليزي)">
 <input type="password" id="regPassword" placeholder="كلمة مرور (6 خانات فأكثر)">
-<input id="regPhone" placeholder="رقم الهاتف (مع رمز الدولة، مثال: 9665xxxxxxxx)" dir="ltr" style="text-align:left">
+<input id="regPhone" placeholder="رقم الهاتف (هذا هو رقم تسجيل الدخول لاحقًا)" dir="ltr" style="text-align:left">
 <input id="regEmail" type="email" placeholder="البريد الإلكتروني" dir="ltr" style="text-align:left">
 <button onclick="doBranchRegister()">إرسال طلب الانضمام</button>
 <div class="lockErr" id="branchRegisterMsg"></div>
@@ -150,11 +153,15 @@ body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;heig
 </div></div>
 <div id="branchBanner" style="display:none"></div>
 <div class="desktop"><aside class="side"><h2>منصة التوزيع الذكي</h2><div class="ver">شاطئ الوصل</div>
+<div id="notifBell" style="display:none;margin:8px 0;cursor:pointer;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:900;color:#991b1b" onclick="document.querySelector('[data-page=branches]').click()">
+🔔 <span id="notifBellCount">0</span> طلب انضمام بانتظار الموافقة
+</div>
 <div class="navGrid">
 <button class="nav active" data-page="home"><span class="ic">🏠</span>الرئيسية</button><button class="nav" data-page="file"><span class="ic">📄</span>ملف Excel</button><button class="nav" data-page="dashboard"><span class="ic">🚀</span>التشغيل</button>
 <button class="nav" data-jump="sources"><span class="ic">🎯</span>المصادر</button><button class="nav" data-jump="shortage"><span class="ic">📉</span>النواقص</button>
 <button class="nav" data-jump="checks"><span class="ic">🩺</span>فحص وصيانة</button>
 <button class="nav" data-jump="settings"><span class="ic">⚙️</span>الإعدادات</button><button class="nav" data-page="categories"><span class="ic">🏷️</span>الفئات</button>
+<button class="nav" data-page="notifsettings" id="navNotifSettings" style="display:none"><span class="ic">🔔</span>إعدادات الإشعارات</button>
 <button class="nav" data-page="branches" id="navBranches"><span class="ic">👥</span>الفروع</button>
 <button class="nav" data-page="chat" id="navChat"><span class="ic">💬</span>الدردشة</button>
 <button class="nav" data-jump="monitor"><span class="ic">📊</span>المراقبة</button>
@@ -323,6 +330,22 @@ body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;heig
 <div class="msg" id="odooSyncMsg">لم تتم أي مزامنة بعد.</div>
 </div>
 </div></section>
+<section class="page" id="page-notifsettings"><div class="wrap">
+<div class="card">
+<h3>🔔 إعدادات الإشعارات</h3>
+<div class="muted">حدد بياناتك هنا عشان توصلك إشعارات رسائل الفروع وطلبات الانضمام. الواتساب مجاني تمامًا (رابط مباشر بدون أي خدمة خارجية)، الإيميل يحتاج إعداد EmailJS المجاني (راجع التعليمات).</div>
+<div style="margin-top:14px">
+<label class="tiny" style="display:block;margin-bottom:4px">📱 رقم هاتفك (مع رمز الدولة، للواتساب)</label>
+<input id="notifAdminPhone" placeholder="مثال: 9665xxxxxxxx" dir="ltr" style="text-align:left">
+</div>
+<div style="margin-top:10px">
+<label class="tiny" style="display:block;margin-bottom:4px">✉️ بريدك الإلكتروني (للإشعارات عبر الإيميل)</label>
+<input id="notifAdminEmail" type="email" placeholder="بريدك الإلكتروني" dir="ltr" style="text-align:left">
+</div>
+<button class="btnBlue full" style="margin-top:14px" onclick="saveNotifSettings()">حفظ</button>
+<div class="lockErr" id="notifSettingsMsg" style="color:#166534"></div>
+</div>
+</div></section>
 <section class="page" id="page-branches"><div class="wrap">
 <div class="card accent-violet"><h3>👥 إدارة حسابات الفروع</h3><div class="muted">هنا توافق على طلبات انضمام الفروع الجديدة، وتتحكم بصلاحيات كل فرع (أي أوامر تشغيل مسموحة له)، وتقدر تعلّق أو تحذف أي فرع - المحذوف يروح لسلة المحذوفات وتقدر تسترجعه.</div></div>
 <div class="card"><h3>🆕 طلبات انضمام بانتظار الموافقة</h3><div id="brPendingList" class="msg">جاري التحميل...</div></div>
@@ -392,4 +415,5 @@ body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;heig
 <script src="chat-ui.js"></script>
 <script src="call-ui.js"></script>
 <script src="home-ui.js"></script>
+<script src="pwa-register.js"></script>
 </body></html>

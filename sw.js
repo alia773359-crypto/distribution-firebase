@@ -1,0 +1,38 @@
+'use strict';
+const CACHE_NAME = 'distribution-platform-v1';
+const SHELL_FILES = [
+  './', './index.html', './theme.js', './firebase-config.js', './firebase-client.js',
+  './renderer.js', './branch-ui.js', './chat-ui.js', './call-ui.js', './home-ui.js',
+  './engine/xlsx.full.min.js', './engine/locations.js', './engine/engine.js', './engine/excelLoader.js',
+  './manifest.json', './icons/icon-192.png', './icons/icon-512.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES)).catch(() => { /* تجاهل فشل تخزين ملف معيّن */ }));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((names) => Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
+  // أي طلب لـ Firebase (قاعدة بيانات، مصادقة) يروح مباشرة للشبكة دائمًا - ما نخزّنه أبدًا
+  if (url.includes('firebaseio.com') || url.includes('firebasedatabase.app') || url.includes('googleapis.com') || url.includes('emailjs.com')) return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const networkFetch = fetch(event.request).then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => cached);
+      return cached || networkFetch;
+    })
+  );
+});

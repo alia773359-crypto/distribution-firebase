@@ -35,7 +35,8 @@ async function loadHomePage() {
         <div class="name">${esc(s.label)}</div>
         <b style="font-size:11px">${fmtDateTimeHome(s.updatedAt)}</b>
         ${s.updatedBy ? `<div class="tiny">بواسطة: ${esc(s.updatedBy)}</div>` : ''}
-        <button style="margin-top:6px;min-height:auto;padding:4px 8px;font-size:10px" onclick="homeMarkSheetUpdated('${s.key}')">✅ حدّثتها الآن</button>
+        <button class="btnBlue" style="margin-top:8px;width:100%;box-shadow:0 2px 6px rgba(14,165,233,.25)" onclick="homeMarkSheetUpdated('${s.key}')">✅ اضغط هنا لتأكيد التحديث الآن</button>
+        <div class="tiny" style="margin-top:3px;color:#0284c7">👆 هذا زر حقيقي - اضغطه بعد ما تحدّث هذي الصفحة فعليًا بملف الإكسل</div>
       </div>`).join('');
   }
 
@@ -64,6 +65,42 @@ window.saveHomeAdminEmail = async function () {
   msgEl.style.color = r.ok ? '#166534' : '#991b1b';
   msgEl.textContent = r.message || (r.ok ? 'تم الحفظ.' : 'تعذّر الحفظ.');
 };
+
+async function refreshNotifBell() {
+  const r = await window.api.settings.badgeCount();
+  const bell = document.getElementById('notifBell');
+  if (!bell) return;
+  if (r.ok && r.count > 0) {
+    document.getElementById('notifBellCount').textContent = r.count;
+    bell.style.display = 'block';
+  } else {
+    bell.style.display = 'none';
+  }
+}
+
+async function loadNotifSettingsPage() {
+  const emailRes = await window.api.settings.getAdminEmail();
+  if (emailRes.ok) document.getElementById('notifAdminEmail').value = emailRes.email || '';
+  const phoneRes = await window.api.settings.getAdminPhone();
+  if (phoneRes.ok) document.getElementById('notifAdminPhone').value = phoneRes.phone || '';
+}
+window.saveNotifSettings = async function () {
+  const phone = document.getElementById('notifAdminPhone').value;
+  const email = document.getElementById('notifAdminEmail').value;
+  const msgEl = document.getElementById('notifSettingsMsg');
+  const r1 = await window.api.settings.setAdminPhone(phone);
+  const r2 = await window.api.settings.setAdminEmail(email);
+  const ok = r1.ok && r2.ok;
+  msgEl.style.color = ok ? '#166534' : '#991b1b';
+  msgEl.textContent = ok ? 'تم حفظ إعدادات الإشعارات.' : (r1.message || r2.message || 'تعذّر الحفظ.');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-page="notifsettings"]').forEach(btn => {
+    btn.onclick = () => { if (typeof page === 'function') page('notifsettings'); loadNotifSettingsPage(); };
+  });
+  setInterval(refreshNotifBell, 15000);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-page="home"]').forEach(btn => {
