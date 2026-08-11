@@ -69,12 +69,25 @@ window.saveHomeAdminEmail = async function () {
 async function refreshNotifBell() {
   const r = await window.api.settings.badgeCount();
   const bell = document.getElementById('notifBell');
-  if (!bell) return;
-  if (r.ok && r.count > 0) {
-    document.getElementById('notifBellCount').textContent = r.count;
-    bell.style.display = 'block';
-  } else {
-    bell.style.display = 'none';
+  if (bell) {
+    if (r.ok && r.count > 0) {
+      document.getElementById('notifBellCount').textContent = r.count;
+      bell.style.display = 'block';
+    } else {
+      bell.style.display = 'none';
+    }
+  }
+  // شارة الرسائل الجديدة - تشتغل للإدارة والفروع الاثنين (بعكس شارة طلبات الانضمام اللي
+  // للإدارة فقط)، عشان الفرع يعرف إن فيه رسالة جديدة وصلته بدون ما يحتاج يفتح الدردشة يتأكد.
+  const chatBell = document.getElementById('chatNotifBell');
+  if (chatBell) {
+    const cr = await window.api.settings.chatBadgeCount();
+    if (cr.ok && cr.count > 0) {
+      document.getElementById('chatNotifBellCount').textContent = cr.count;
+      chatBell.style.display = 'block';
+    } else {
+      chatBell.style.display = 'none';
+    }
   }
 }
 

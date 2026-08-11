@@ -74,6 +74,7 @@ async function applySessionUI() {
     document.body.style.paddingTop = '0';
     document.querySelector('.desktop').style.marginTop = '38px';
     applyLockedCommandsToUI(s.locked || []);
+    if (typeof refreshNotifBell === 'function') refreshNotifBell(); // يظهر شارة 💬 فورًا بدون ما ينتظر أول فحص دوري (حتى 15 ثانية)
   } else if (s.role === 'admin') {
     banner.style.display = 'none';
     if (navBranches) navBranches.style.display = '';
@@ -234,6 +235,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const navBr = document.getElementById('navBranches');
   if (navBr) navBr.onclick = () => { if (typeof page === 'function') page('branches'); loadBranchesAdminAll(); };
 });
+
+// ---- تحديث تلقائي دوري لطلبات الانضمام (بدون ما تحتاج تسجّل خروج/دخول من جديد) ----
+// بدون سيرفر مركزي/بث لحظي حقيقي (Firebase SDK الكاملة)، الحل العملي هو فحص دوري: كل 20 ثانية
+// نجدّد شارة الجرس دائمًا (بأي صفحة)، وكل 15 ثانية نجدّد قائمة طلبات الانضمام كاملة لو كنت فاتح
+// بالضبط صفحة "👥 الفروع" وقتها (نفس أسلوب تحديث صفحة الدردشة الموجود مسبقًا).
+setInterval(() => {
+  window.api.session.me().then(s => { if (s.role === 'admin') refreshPendingBadge(); }).catch(() => { /* تجاهل */ });
+}, 20000);
+setInterval(() => {
+  const pageBr = document.getElementById('page-branches');
+  if (!pageBr || !pageBr.classList.contains('active')) return;
+  window.api.session.me().then(s => { if (s.role === 'admin') loadBranchesAdminAll(); }).catch(() => { /* تجاهل */ });
+}, 15000);
 
 // ملاحظة: بدون سيرفر مركزي ما فيه بث لحظي (SSE) للطلبات الجديدة هذي المرحلة - القائمة
 // تتحدث تلقائيًا كل ما تزور صفحة "الفروع" أو تسجّل دخول من جديد. تحديث لحظي حقيقي (لحظة

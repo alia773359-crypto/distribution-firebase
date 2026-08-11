@@ -186,7 +186,25 @@ async function branchRegister(displayName, username, password, phone, email) {
   try {
     // رقم الهاتف هو المُعرِّف الفريد الآن لتسجيل الدخول (وليس اسم المستخدم) - يسمح لعدة فروع
     // مختلفة تستخدم نفس اسم العرض (مثلاً "محمد") طالما أرقام هواتفهم مختلفة فعليًا.
-    const cred = await authSignUp(cleanPhone + FAKE_EMAIL_DOMAIN, password);
+    let cred;
+    try {
+      cred = await authSignUp(cleanPhone + FAKE_EMAIL_DOMAIN, password);
+    } catch (signupErr) {
+      // فشل التسجيل برسالة "مسجّل من قبل" (EMAIL_EXISTS) يصير غالبًا لما الإدارة تكون سوّت
+      // "حذف نهائي" لفرع قديم بنفس الرقم: بيانات الفرع تُحذف من قاعدة البيانات فعلاً، لكن حساب
+      // Firebase Authentication الحقيقي (تسجيل الدخول نفسه) يبقى موجودًا تقنيًا - حذفه الكامل
+      // يحتاج خادمًا خلفيًا (Admin SDK) ما نملكه بهذا الحل بدون سيرفر. بدل ما نوقف الشخص هنا
+      // بلا أي مخرج، نتحقق: لو كلمة المرور اللي كتبها الآن تطابق كلمة مرور ذاك الحساب القديم
+      // (يعني هو نفسه صاحبه أصلاً)، ولا يوجد له طلب/حساب نشط حاليًا، نعتبرها "إعادة تقديم طلب
+      // انضمام" ونعيد استخدام نفس الحساب بدل ما نرفضه برسالة غامضة.
+      if (!String(signupErr.message || '').includes('مسجّل من قبل')) return { ok: false, message: signupErr.message };
+      let signInCred;
+      try { signInCred = await authSignIn(cleanPhone + FAKE_EMAIL_DOMAIN, password); }
+      catch (e) { return { ok: false, message: 'رقم الهاتف هذا مسجّل من قبل بكلمة مرور مختلفة عن اللي كتبتها الآن - لو كنت فرعًا سابقًا وتذكر كلمة مرورك القديمة جرّب تسجيل الدخول العادي بدلًا من التسجيل، أو تواصل مع الإدارة.' }; }
+      const existingAcc = await dbGet('branches/' + signInCred.localId).catch(() => null);
+      if (existingAcc && !existingAcc.deletedAt) return { ok: false, message: 'رقم الهاتف هذا مسجّل من قبل بحساب نشط بالفعل - سجّل الدخول بدل التسجيل من جديد، أو تواصل مع الإدارة لو تعتقد إنه خطأ.' };
+      cred = signInCred; // نفس الحساب القديم (محذوف من قاعدة البيانات فقط) - نعيد فتح طلب انضمام جديد عليه
+    }
     const payload = { displayName: String(displayName).trim(), username: uname, phone: cleanPhone, email: cleanEmail, status: 'pending', createdAt: new Date().toISOString(), approvedAt: null, deletedAt: null, lastLoginAt: null };
     // نكتب بيانات الفرع مباشرة برمز الدخول المؤقت الناتج من التسجيل، ونتحقق فعليًا من نجاح
     // الكتابة (لا نفترضها) - أحيانًا يحتاج رمز الدخول الجديد ثانية أو ثانيتين حتى يُعترف فيه
@@ -563,8 +581,40 @@ async function chatMessages(convId) {
       const m = msgs[mid];
       return { id: mid, senderId: m.senderId, senderName: m.senderName, body: m.body, fileName: m.fileName, hasFile: !!m.fileData, createdAt: m.createdAt, _fileData: m.fileData };
     });
+    // نعلّم هذي المحادثة "مقروءة" لحظة ما نفتحها - هذا اللي يخلي شارة "🔔 رسالة جديدة" تختفي
+    // بمجرد ما تشوف الرسالة، ويحسب أي رسالة تجي بعد كذا كـ"غير مقروءة" من جديد.
+    dbSet('readMarks/' + me.id + '/' + convId, new Date().toISOString()).catch(() => { /* اختياري - ما يوقف فتح المحادثة */ });
     return { ok: true, rows, conversation: { id: convId, type: conv.type, name: decorated.name, paused: decorated.paused, otherId: decorated.otherId } };
   } catch (e) { return { ok: false, message: e.message || String(e) }; }
+}
+// ---------- عدد الرسائل غير المقروءة (لشارة 💬 بالقائمة الجانبية) ----------
+// ملاحظة: بدون بث لحظي حقيقي، هذا يُحسَب عند كل فحص دوري (كل 15 ثانية من home-ui.js) بقراءة
+// آخر رسالة بكل محادثة أنت عضو فيها ومقارنتها بآخر وقت فتحت فيه تلك المحادثة (readMarks).
+async function chatUnreadCount() {
+  try {
+    const me = meIdentity();
+    if (!me) return 0;
+    let convIds;
+    if (isAdminSession()) {
+      const all = (await dbGet('conversations')) || {};
+      convIds = Object.keys(all).filter(id => !all[id].deletedAt);
+    } else {
+      const myIndex = (await dbGet('userConversations/' + me.id)) || {};
+      convIds = Object.keys(myIndex);
+    }
+    const myReads = (await dbGet('readMarks/' + me.id).catch(() => null)) || {};
+    let count = 0;
+    for (const id of convIds) {
+      const msgs = (await dbGet('messages/' + id).catch(() => null)) || {};
+      const msgIds = Object.keys(msgs).sort();
+      if (!msgIds.length) continue;
+      const last = msgs[msgIds[msgIds.length - 1]];
+      if (last.senderId === me.id) continue; // آخر رسالة مني أنا - مو غير مقروءة
+      const lastReadAt = myReads[id];
+      if (!lastReadAt || new Date(last.createdAt) > new Date(lastReadAt)) count++;
+    }
+    return count;
+  } catch (e) { return 0; }
 }
 async function chatSend(convId, body, file) {
   try {
@@ -916,11 +966,18 @@ const EMAILJS_CONFIG = { serviceId: 'service_1rrddy5', templateId: 'template_bfy
 async function sendEmailNotification(toEmail, subject, message) {
   if (!EMAILJS_CONFIG.serviceId || !toEmail) return; // غير مفعّل أو ما فيه بريد مسجّل - تجاهل بصمت
   try {
-    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    const r = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service_id: EMAILJS_CONFIG.serviceId, template_id: EMAILJS_CONFIG.templateId, user_id: EMAILJS_CONFIG.publicKey, template_params: { to_email: toEmail, subject, message } })
     });
-  } catch (e) { /* فشل الإرسال ما يوقف أي شيء ثاني بالبرنامج */ }
+    // مهم: قبل كنا نتجاهل نتيجة الإرسال بالكامل (حتى الأخطاء) - لو فشل الإرسال (مثلاً 422 من
+    // EmailJS)، ما كان يظهر أي أثر إلا بشبكة المتصفح (Network tab)، بدون أي تفصيل بالـ Console.
+    // الآن نطبع السبب الحقيقي (نص الخطأ اللي يرجعه EmailJS نفسه) عشان تقدر تشخّص المشكلة فورًا.
+    if (!r.ok) {
+      const errText = await r.text().catch(() => '');
+      console.error('فشل إرسال إشعار البريد (EmailJS ' + r.status + '): ' + errText + ' - الحل الأغلب: تأكد إن حقل "To Email" بقالب EmailJS (Email Templates بلوحة emailjs.com) معبّى بالضبط بـ {{to_email}}.');
+    }
+  } catch (e) { console.error('تعذّر الاتصال بخدمة EmailJS:', e.message || e); }
 }
 
 window.api = {
@@ -983,7 +1040,8 @@ window.api = {
     setAdminEmail: async (email) => { try { requireAdminSession(); await dbSet('settings/adminEmail', String(email || '').trim()); return { ok: true, message: 'تم حفظ بريد الإدارة للإشعارات.' }; } catch (e) { return { ok: false, message: e.message || String(e) }; } },
     getAdminPhone: async () => { try { return { ok: true, phone: (await dbGet('settings/adminPhone')) || '' }; } catch (e) { return { ok: false, phone: '' }; } },
     setAdminPhone: async (phone) => { try { requireAdminSession(); const clean = String(phone || '').replace(/[^0-9+]/g, ''); await dbSet('settings/adminPhone', clean); return { ok: true, message: 'تم حفظ رقم هاتف الإدارة.' }; } catch (e) { return { ok: false, message: e.message || String(e) }; } },
-    badgeCount: async () => { try { if (!isAdminSession()) return { ok: true, count: 0 }; const pend = await adminListBranches('pending'); return { ok: true, count: pend.ok ? pend.rows.length : 0 }; } catch (e) { return { ok: true, count: 0 }; } }
+    badgeCount: async () => { try { if (!isAdminSession()) return { ok: true, count: 0 }; const pend = await adminListBranches('pending'); return { ok: true, count: pend.ok ? pend.rows.length : 0 }; } catch (e) { return { ok: true, count: 0 }; } },
+    chatBadgeCount: async () => { try { return { ok: true, count: await chatUnreadCount() }; } catch (e) { return { ok: true, count: 0 }; } }
   },
   call: {
     invite: (targetId, conversationId, kind, offer) => callInvite(targetId, conversationId, kind, offer),
