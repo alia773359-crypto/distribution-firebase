@@ -110,9 +110,17 @@ async function loadBranchesAdminAll() {
     window.api.admin.listBranches('approved'),
     window.api.admin.listBranches('trash')
   ]);
-  renderPending(pending.ok ? pending.rows : []);
-  await renderApproved(approved.ok ? approved.rows : []);
-  renderTrash(trash.ok ? trash.rows : []);
+  // مهم: لو صار خطأ فعلي (مثلًا جلستك انتهت)، نوضّح هذا صراحة بدل ما نعرضه "فاضي" -
+  // كانت هذي بالضبط سبب الالتباس: خطأ حقيقي يظهر وكأنه "لا يوجد شي"، بدون أي تنبيه.
+  if (!pending.ok || !approved.ok || !trash.ok) {
+    const err = pending.message || approved.message || trash.message || 'خطأ غير معروف';
+    const box = document.getElementById('brPendingList');
+    if (box) box.innerHTML = `<div class="msg" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b">⚠️ تعذّر تحميل بيانات الفروع: ${err}<br>غالبًا جلستك انتهت - <button class="btnBlue" style="margin-top:8px" onclick="window.doLogoutAny()">سجّل خروج وادخل من جديد</button></div>`;
+    return;
+  }
+  renderPending(pending.rows);
+  await renderApproved(approved.rows);
+  renderTrash(trash.rows);
 }
 
 function renderPending(rows) {
