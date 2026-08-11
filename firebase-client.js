@@ -782,24 +782,60 @@ function startCallPolling() {
 
 
 // ---------- تصدير النتائج كملف Excel حقيقي (يتم كامل داخل متصفحك عبر مكتبة XLSX نفسها) ----------
+// ملاحظة: استبدلنا مكتبة SheetJS العادية بمكتبة "xlsx-js-style" (نفس المحرك، لكنها مجانية
+// بالكامل وتدعم الألوان/الخطوط الغامقة/الحدود عند الكتابة - بعكس النسخة المجانية القديمة اللي
+// كانت تتجاهل أي تنسيق). هذا هو سبب اختلاف شكل الملف الناتج سابقًا (عادي بدون ألوان) عن ملفات
+// أخرى كانت منسّقة - الآن نفس هذا المصدّر ينتج ملفات منسّقة بالألوان دائمًا.
+const XLSX_HEADER_STYLE = {
+  fill: { patternType: 'solid', fgColor: { rgb: '1F3864' } },
+  font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: {
+    top: { style: 'thin', color: { rgb: 'B7C3D0' } }, bottom: { style: 'thin', color: { rgb: 'B7C3D0' } },
+    left: { style: 'thin', color: { rgb: 'B7C3D0' } }, right: { style: 'thin', color: { rgb: 'B7C3D0' } }
+  }
+};
+function xlsxBodyStyle(isAltRow) {
+  return {
+    fill: { patternType: 'solid', fgColor: { rgb: isAltRow ? 'F2F5FA' : 'FFFFFF' } },
+    font: { sz: 11 },
+    alignment: { vertical: 'center', wrapText: false },
+    border: {
+      top: { style: 'thin', color: { rgb: 'E3E8EF' } }, bottom: { style: 'thin', color: { rgb: 'E3E8EF' } },
+      left: { style: 'thin', color: { rgb: 'E3E8EF' } }, right: { style: 'thin', color: { rgb: 'E3E8EF' } }
+    }
+  };
+}
 function downloadAoaAsXlsx(sheets, filename) {
   const wb = window.XLSX.utils.book_new();
   sheets.forEach(s => {
     const ws = window.XLSX.utils.aoa_to_sheet(s.rows);
-    // عرض أعمدة تلقائي حسب أطول محتوى بكل عمود، وفلتر تلقائي بأعلى الجدول - هذي التحسينات
-    // مدعومة بالنسخة المجانية. الألوان والخط الغامق تحتاج ترخيص مدفوع لمكتبة SheetJS
-    // (Pro)، وما توفرت لهذا الحل بدون سيرفر - إن احتجتها لاحقًا بإمكاننا مراجعتها.
     if (s.rows.length) {
+      const colCount = s.rows[0].length;
+      // عرض أعمدة تلقائي حسب أطول محتوى بكل عمود
       ws['!cols'] = s.rows[0].map((_, colIdx) => {
         let maxLen = 8;
         s.rows.forEach(r => { const v = r[colIdx]; if (v !== undefined && v !== null) maxLen = Math.max(maxLen, String(v).length); });
         return { wch: Math.min(45, maxLen + 3) };
       });
-      ws['!autofilter'] = { ref: window.XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: s.rows.length - 1, c: s.rows[0].length - 1 } }) };
+      ws['!autofilter'] = { ref: window.XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: s.rows.length - 1, c: colCount - 1 } }) };
+      ws['!rows'] = [{ hpx: 26 }]; // ارتفاع أكبر لصف العناوين
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 }; // تجميد صف العناوين عند التمرير
+      // تلوين صف العناوين + تلوين متبادل لصفوف البيانات + حدود لكل الخلايا
+      for (let c = 0; c < colCount; c++) {
+        const headCellRef = window.XLSX.utils.encode_cell({ r: 0, c });
+        if (ws[headCellRef]) ws[headCellRef].s = XLSX_HEADER_STYLE;
+        for (let r = 1; r < s.rows.length; r++) {
+          const cellRef = window.XLSX.utils.encode_cell({ r, c });
+          if (ws[cellRef]) ws[cellRef].s = xlsxBodyStyle(r % 2 === 0);
+        }
+      }
     }
+    ws['!sheetFormat'] = { defaultRowHeight: 20 };
+    ws['!views'] = [{ rightToLeft: true }]; // اتجاه يمين-لشمال يناسب المحتوى العربي
     window.XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31)); // أسماء أوراق Excel محدودة بـ٣١ حرف
   });
-  window.XLSX.writeFile(wb, filename + '.xlsx');
+  window.XLSX.writeFile(wb, filename + '.xlsx', { cellStyles: true });
 }
 function branchRowsToAoA(rows) {
   const heads = ['Run ID', 'الباركود', 'اسم المنتج', 'الأولوية', 'الفئة', 'تاريخ آخر شراء', 'كمية آخر شراء', 'استلام آخر 10 أيام', 'المصدر', 'اسم المصدر', 'مبيعات 3 أشهر المصدر', 'مبيعات 30 يوم المصدر', 'مخزون المصدر قبل', 'المتبقي بالمصدر', 'الوجهة', 'اسم الوجهة', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'الكمية المحولة', 'فئة A', 'نوع الأمر', 'الاحتياج', 'هدف التغطية', 'سبب اختيار المصدر', 'تغطية قبل', 'تغطية بعد', 'درجة الخطر', 'سقف التصنيع الخاص'];
