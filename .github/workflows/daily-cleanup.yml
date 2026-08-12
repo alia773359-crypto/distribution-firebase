@@ -1,0 +1,27 @@
+name: تنظيف يومي لقاعدة البيانات
+
+# يشتغل تلقائيًا الساعة 3:00 فجرًا بتوقيت السعودية (UTC+3) كل يوم = 00:00 بتوقيت UTC.
+# جدولة GitHub Actions (cron) تُكتب دائمًا بتوقيت UTC، عشان كذا الرقم هنا "0 0 * * *" مو "3".
+# تقدر أيضًا تشغّله يدويًا أي وقت من تبويب Actions بالمستودع (زر "Run workflow") لتجربته فورًا
+# بدون انتظار الموعد التلقائي.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: تشغيل سكربت التنظيف
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          # الأرقام الافتراضية (بالأيام) - غيّرها هنا لو تبي فترة احتفاظ مختلفة، بدون لمس الكود:
+          ATTACHMENT_RETENTION_DAYS: '30'
+          MESSAGE_RETENTION_DAYS: '180'
+          TRASH_RETENTION_DAYS: '30'
+        run: node scripts/daily-cleanup.mjs
