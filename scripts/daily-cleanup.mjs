@@ -30,7 +30,7 @@
 // ما نستوردها من ذاك الملف مباشرة لأنه مكتوب كسكربت متصفح عادي (window.FIREBASE_CONFIG)، مو
 // كوحدة Node.js - فلو غيّرت مشروع Firebase مستقبلًا، حدّث القيم بهذا الملف وبذاك الملف مع بعض.
 const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyA-QL6yIiAvDBlhm_WlDsOMNXz7NgStnLk',
+  apiKey: 'AIzaSyA-QL6yIiAvDBlhm_WlDsOMNXz7Ng5tnLk',
   databaseURL: 'https://distribution-platform-1f155-default-rtdb.europe-west1.firebasedatabase.app'
 };
 
