@@ -215,7 +215,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
           const pur = readers.purch(b), cat = readers.category(b), af = readers.isA(b) ? 'A' : '', risk = beforeDays <= 3 ? 'مرتفع' : beforeDays <= 7 ? 'متوسط' : 'منخفض';
           const afterDays = daily > 0 ? Math.floor((curDestStock(dv, dest.id) + q) / daily) : 9999, remainSrc = Math.max(0, so.sv.stock - usedOf(so.s.id) - q);
           const reason = (so.isWh ? 'مستودع مختار - أولوية المستودعات' : 'أفضل مصدر حسب درجة الفائض والمبيعات والنقل الحالي') + ' / فائض: ' + so.av + ' / درجة المصدر: ' + Math.round(so.score) + ' / كمية مخصصة من صفحة الاحتياج: ' + o.qty;
-          const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, qty: q, aClass: af, mode, need: o.qty, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
+          const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, qty: q, aClass: af, mode, need: o.qty, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
           (so.isWh ? wout : bout).push(record);
           history.push([rid, new Date().toISOString(), b, name, so.s.id, so.s.ar, dest.id, dest.ar, q, mode, reason]);
           register(so.s.id, dest.id, q);
@@ -322,7 +322,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
             const afterDays = daily > 0 ? Math.floor((curDestStock(dv, dest.id) + unit) / daily) : 9999;
             const remainSrc = Math.max(0, so.sv.stock - usedOf(so.s.id) - unit);
             const reason = 'سحب كامل وتقسيم بالتساوي على ' + cnt + ' وجهة / نصيب هذه الوجهة: ' + unit + ' / درجة المصدر: ' + Math.round(so.score) + ' / المتبقي من المصدر بعد السحب: ' + remainSrc;
-            const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, qty: unit, aClass: af, mode, need: so.av, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
+            const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, qty: unit, aClass: af, mode, need: so.av, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
             (so.isWh ? wout : bout).push(record);
             history.push([rid, new Date().toISOString(), b, name, so.s.id, so.s.ar, dest.id, dest.ar, unit, mode, reason]);
             register(so.s.id, dest.id, unit);
@@ -427,7 +427,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         const afterDays = daily > 0 ? Math.floor((curDestStock(dv, dest.id) + q) / daily) : 9999;
         const remainSrc = Math.max(0, so.sv.stock - usedOf(so.s.id) - q);
         const reason = (so.isWh ? 'مستودع مختار - أولوية المستودعات' : 'أفضل مصدر حسب الفائض والمبيعات') + ' / فائض: ' + so.av + ' / درجة المصدر: ' + Math.round(so.score);
-        const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, qty: q, aClass: af, mode, need, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk, specCap: sp };
+        const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, qty: q, aClass: af, mode, need, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk, specCap: sp };
         (so.isWh ? wout : bout).push(record);
         history.push([rid, new Date().toISOString(), b, name, so.s.id, so.s.ar, dest.id, dest.ar, q, mode, reason]);
         register(so.s.id, dest.id, q);

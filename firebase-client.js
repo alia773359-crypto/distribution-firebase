@@ -898,8 +898,8 @@ function downloadAoaAsXlsx(sheets, filename) {
   window.XLSX.writeFile(wb, filename + '.xlsx', { cellStyles: true });
 }
 function branchRowsToAoA(rows) {
-  const heads = ['Run ID', 'الباركود', 'اسم المنتج', 'الأولوية', 'الفئة', 'تاريخ آخر شراء', 'كمية آخر شراء', 'استلام آخر 10 أيام', 'المصدر', 'اسم المصدر', 'مبيعات 3 أشهر المصدر', 'مبيعات 30 يوم المصدر', 'مخزون المصدر قبل', 'المتبقي بالمصدر', 'الوجهة', 'اسم الوجهة', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'الكمية المحولة', 'فئة A', 'نوع الأمر', 'الاحتياج', 'هدف التغطية', 'سبب اختيار المصدر', 'تغطية قبل', 'تغطية بعد', 'درجة الخطر', 'سقف التصنيع الخاص'];
-  const body = rows.map(r => [r.runId, r.barcode, r.name, r.priority, r.category, r.purchaseDate, r.purchaseQty, r.rec10, r.srcId, r.srcAr, r.srcS90 || 0, r.srcS30 || 0, r.srcStock, r.srcRemain, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.qty, r.aClass, r.mode, r.need, r.coverTarget, r.reason, r.beforeDays, r.afterDays, r.risk, r.specCap || 0]);
+  const heads = ['Run ID', 'الباركود', 'اسم المنتج', 'الأولوية', 'الفئة', 'تاريخ آخر شراء', 'كمية آخر شراء', 'استلام آخر 10 أيام', 'المصدر', 'اسم المصدر', 'مبيعات 3 أشهر المصدر', 'مبيعات 30 يوم المصدر', 'مخزون المصدر قبل', 'المتبقي بالمصدر', 'الوجهة', 'اسم الوجهة', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'الكمية المحولة', 'فئة A', 'نوع الأمر', 'الاحتياج', 'هدف التغطية', 'سبب اختيار المصدر', 'تغطية قبل', 'تغطية بعد', 'درجة الخطر', 'سقف التصنيع الخاص'];
+  const body = rows.map(r => [r.runId, r.barcode, r.name, r.priority, r.category, r.purchaseDate, r.purchaseQty, r.rec10, r.srcId, r.srcAr, r.srcS90 || 0, r.srcS30 || 0, r.srcStock, r.srcRemain, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming || 0, r.qty, r.aClass, r.mode, r.need, r.coverTarget, r.reason, r.beforeDays, r.afterDays, r.risk, r.specCap || 0]);
   return [heads, ...body];
 }
 function raiseRowsToAoA(rows) {
