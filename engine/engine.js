@@ -413,7 +413,14 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         }
         if (q <= 0) { reject(raise, rid, 'R010', b, name, prio, dest.id, dest.ar, 'كمية التحويل المحسوبة = 0', 'تحويل صفر', 'الاحتياج: ' + need + ' / المتبقي: ' + rem, need, dv.incoming, rem, mode); continue; }
         const minTrEff = isExceptional ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
-        if (minTrEff > 0 && q < minTrEff) {
+        // "أقل تحويل" (minTr) مصمم أصلًا لمنع تحويلات صغيرة/مهدرة بالتوزيع العادي المعتمد على
+        // المبيعات - لكن لو الفرع له حد خاص محدد (حدود الفروع الخاصة)، فالكمية المحسوبة أصلًا
+        // *دقيقة ومقصودة* (بالضبط الفرق بين المخزون الحالي والحد المطلوب)، فرضها لأعلى (رفع)
+        // أو رفضها بسبب "أقل تحويل" يُفسد الدقة المطلوبة تمامًا (يوصّل الفرع لأكثر أو أقل من
+        // حده الفعلي). لذلك: الفروع اللي عندها حد خاص تتجاوز فحص "أقل تحويل" كليًا، وتُنفَّذ
+        // بالضبط بالكمية المحسوبة مهما كانت صغيرة. الفروع بدون حد خاص تبقى بنفس السلوك القديم.
+        const hasLimit = !isExceptional && blDest && blDest.min !== undefined;
+        if (!hasLimit && minTrEff > 0 && q < minTrEff) {
           if (!isExceptional && cfg.raiseSmallNeed > 0) {
             const raiseCeil = Math.min(so.av, capKeepQty, capMaxCover);
             const raised = Math.min(cfg.raiseSmallNeed, raiseCeil);
@@ -449,13 +456,16 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
     }
   });
 
-  // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى
+  // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى - إلا لو الوجهة عندها حد
+  // خاص محدد (حدود الفروع الخاصة)، فهذي الكمية دقيقة ومقصودة ولازم تمر كما هي بدون رفض.
   function finalFilter(list) {
     return list.filter(r => {
       const isExc = (r.mode === 'السحب الكامل الاستثنائي' || r.mode === 'exceptional');
       const minTr = isExc ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
+      const blR = cfg.branchLimits && cfg.branchLimits[r.destId];
+      const hasLimitR = !isExc && blR && blR.min !== undefined;
       if (r.qty <= 0) { reject(raise, rid, 'R010', r.barcode, r.name, r.priority, r.destId, r.destAr, 'كمية التحويل = 0', 'تحويل صفر', '', r.need, 0, 0, r.mode); return false; }
-      if (minTr > 0 && r.qty < minTr) { reject(raise, rid, 'R011', r.barcode, r.name, r.priority, r.destId, r.destAr, 'أقل من أقل تحويل', 'أقل من الحد الأدنى', '', r.need, 0, r.qty, r.mode); return false; }
+      if (!hasLimitR && minTr > 0 && r.qty < minTr) { reject(raise, rid, 'R011', r.barcode, r.name, r.priority, r.destId, r.destAr, 'أقل من أقل تحويل', 'أقل من الحد الأدنى', '', r.need, 0, r.qty, r.mode); return false; }
       return true;
     });
   }
