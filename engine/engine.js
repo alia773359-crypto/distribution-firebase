@@ -488,7 +488,11 @@ function computeBigDataNeed(cfg, readers, b, dest, dv, daily) {
     need = 0;
   }
   if (!raisedSales && daily <= 0) {
-    if (bl && bl.max !== undefined) {
+    // العطل هنا: كنا نتحقق فقط من bl.max (الحد الأعلى) لمعرفة "هل عند هذا الفرع حد خاص؟"،
+    // بينما طريقة الاستخدام المعتادة هي تحديد "الحد الأدنى" فقط (bl.min) بدون حد أعلى - فكان
+    // أي فرع بدون مبيعات (daily=0) ومحدد له حد أدنى فقط (بدون حد أعلى) يُعامَل وكأنه ما عنده
+    // أي حد خاص أصلًا، ويدخل قاعدة "مبيعات صفرية" العادية ويُحظر بالكامل - متجاهلًا حده الأدنى.
+    if (bl && (bl.min !== undefined || bl.max !== undefined)) {
       if (need > 0 && bl.min !== undefined && need < bl.min) {
         return { need: 0, blocked: true, reason: 'الاحتياج المحسوب أقل من الحد الأدنى الخاص لهذا الفرع (حدود الفروع الخاصة)' };
       }

@@ -358,8 +358,18 @@ const DEFAULT_CFG = {
   zeroSalesStockLimit: 3, shortageStockThreshold: 0,
   filterMainCategory: [], filterSubCategory: [], filterBrand: []
 };
-async function loadBranchLimitsMap() { try { return (await dbGet('limits/branch')) || {}; } catch (e) { return {}; } }
-async function loadWhLimitsMap() { try { return (await dbGet('limits/wh')) || {}; } catch (e) { return {}; } }
+// ملاحظة مهمة: قبل كنا نتجاهل أي خطأ بقراءة حدود الفروع/المستودعات بصمت ونرجع بيانات فاضية {}
+// - وهذا كان يسبب بالضبط رسالة "لا توجد أي وجهة لها حد أدنى" حتى لو كانت الحدود محفوظة صح
+// فعليًا بقاعدة البيانات (لو صار خطأ اتصال مؤقت وقت الضغط على "تشغيل")! الآن أي فشل حقيقي
+// بالقراءة يظهر برسالة واضحة بدل ما "يختفي" ويبدو وكأن ما فيه حدود محفوظة أصلًا.
+async function loadBranchLimitsMap() {
+  try { return (await dbGet('limits/branch')) || {}; }
+  catch (e) { throw new Error('تعذّر تحميل حدود الفروع الخاصة المحفوظة (' + (e.message || e) + ') - جرب تحديث الصفحة وإعادة المحاولة. إذا استمر الخطأ، تأكد من اتصال الإنترنت أو أعد تسجيل الدخول.'); }
+}
+async function loadWhLimitsMap() {
+  try { return (await dbGet('limits/wh')) || {}; }
+  catch (e) { throw new Error('تعذّر تحميل حدود المستودعات الخاصة المحفوظة (' + (e.message || e) + ') - جرب تحديث الصفحة وإعادة المحاولة.'); }
+}
 async function buildCfg(ui) {
   const cfg = { ...DEFAULT_CFG };
   Object.keys(DEFAULT_CFG).forEach(k => {
