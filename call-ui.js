@@ -30,6 +30,7 @@ function callUiEl(html) {
 function closeCallUi() {
   const el = document.getElementById('callOverlay');
   if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  if (typeof window.stopRinging === 'function') window.stopRinging(); // يوقف الرنين بأي حالة تسكير لواجهة المكالمة
 }
 
 function cleanupCall() {
@@ -103,8 +104,10 @@ function handleIncomingCall(data) {
       </div>
     </div>`);
   window._incomingCallData = data;
+  if (typeof window.startRinging === 'function') window.startRinging(); // رنين متكرر حتى الرد أو الرفض
 }
 window.acceptIncomingCall = async function () {
+  if (typeof window.stopRinging === 'function') window.stopRinging(); // يوقف الرنين فورًا لحظة الرد
   const data = window._incomingCallData;
   if (!data) return;
   callTargetId = data.from; callKind = data.kind; isCaller = false;

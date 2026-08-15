@@ -6,10 +6,10 @@
 // - غيّرنا الإستراتيجية لـ"الشبكة أولًا" لملفات البرنامج نفسها (JS/HTML) بدل "التخزين أولًا" -
 //   هذا يضمن إنك تشوف كل تحديث فورًا بأول تحميل صفحة، والتخزين المؤقت يستخدم فقط كحل احتياطي
 //   وقت انقطاع الإنترنت (عمل بدون اتصال).
-const CACHE_NAME = 'distribution-platform-v2';
+const CACHE_NAME = 'distribution-platform-v3';
 const SHELL_FILES = [
   './', './index.html', './theme.js', './firebase-config.js', './firebase-client.js',
-  './renderer.js', './branch-ui.js', './chat-ui.js', './call-ui.js', './home-ui.js',
+  './renderer.js', './branch-ui.js', './chat-ui.js', './call-ui.js', './home-ui.js', './notif-sound.js',
   './engine/xlsx.full.min.js', './engine/locations.js', './engine/engine.js', './engine/excelLoader.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png'
 ];

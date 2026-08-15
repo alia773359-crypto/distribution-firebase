@@ -16,6 +16,16 @@ window.saveSettings=function(){localStorage.setItem('ALI_TURBO_V8_SETTINGS',JSON
 function renderBranchLimits(){el('branchLimitsGrid').innerHTML=BR.concat(WH).map(x=>`<div class="locCard"><span class="locText"><b>${x[1]}</b><br><span class="code">${x[0]}</span></span><span><input type="number" placeholder="أدنى" style="width:64px" id="bl_min_${x[0]}"><input type="number" placeholder="أعلى" style="width:64px" id="bl_max_${x[0]}"></span></div>`).join('');el('blCount').textContent=BR.length+WH.length}
 function renderWhLimits(){el('whLimitsGrid').innerHTML=WH.map(x=>`<div class="locCard wh"><span class="locText"><b>${x[1]}</b><br><span class="code">${x[0]}</span></span><input type="number" placeholder="حد التفعيل" style="width:90px" id="wl_thr_${x[0]}"></div>`).join('')}
 window.saveBranchLimits=async()=>ok(await window.api.limits.saveBranch(BR.concat(WH).map(x=>({id:x[0],min:el('bl_min_'+x[0]).value,max:el('bl_max_'+x[0]).value}))));window.loadBranchLimits=async()=>{let a=await window.api.limits.loadBranch();a.forEach(x=>{if(el('bl_min_'+x.id))el('bl_min_'+x.id).value=x.min??'';if(el('bl_max_'+x.id))el('bl_max_'+x.id).value=x.max??''})};window.clearBranchLimits=async()=>{ok(await window.api.limits.clearBranch());loadBranchLimits()};
+// تعميم سريع: يعبّي "الحد الأدنى" بنفس القيمة لكل الفروع (مو المستودعات) دفعة وحدة، بدل تعبئة كل
+// فرع لحاله يدويًا - يحفظ فورًا بنفس الضغطة (نفس فكرة "تصفير كل الحدود" لكن بالعكس: تعبئة بدل مسح).
+window.broadcastBranchLimitMin=async()=>{
+  const v=el('blBroadcastMin').value;
+  if(v===''){alert('اكتب رقم الحد الأدنى أول قبل الضغط على "تطبيق وحفظ للكل".');return}
+  BR.forEach(x=>{if(el('bl_min_'+x[0]))el('bl_min_'+x[0]).value=v});
+  await saveBranchLimits();
+  el('blBroadcastMin').value='';
+  alert('تم تطبيق الحد الأدنى ('+v+') على كل الفروع ('+BR.length+' فرع) وحفظه.');
+};
 window.saveWhLimits=async()=>ok(await window.api.limits.saveWh(WH.map(x=>({id:x[0],thr:el('wl_thr_'+x[0]).value}))));window.loadWhLimits=async()=>{let a=await window.api.limits.loadWh();a.forEach(x=>{if(el('wl_thr_'+x.id))el('wl_thr_'+x.id).value=x.thr??''})};window.clearWhLimits=async()=>{ok(await window.api.limits.clearWh());loadWhLimits()};
 function setStatus(s,p=0,cls='busy'){el('status').textContent=s;el('status').className='status '+cls;el('bar').style.width=p+'%';el('p').textContent=p+'%'}function setMonitor(m={}){[['products','products'],['done','done'],['t','transfers'],['q','qty'],['coveredPct','coveredPct'],['rejected','rejected'],['critical','critical'],['elapsed','elapsed'],['speed','speed'],['eta','eta'],['batch','batch'],['errors','errors'],['u','uncovered'],['lock','lock'],['cancel','cancel']].forEach(([a,b])=>{if(el(a)&&m[b]!==undefined)el(a).textContent=m[b]});if(m.progress!==undefined)setStatus(m.status||'جاري التنفيذ',m.progress,'busy')}
 function ok(r){const success=!!(r&&r.ok!==false);setStatus(success?'تم بنجاح':'تعذّر التنفيذ',100,success?'ok':'fail');el('msg').textContent=r&&r.message?r.message:(success?'تم':'حدث خطأ غير معروف');setMonitor(r||{});refreshMonitor();dbRefreshStats();}

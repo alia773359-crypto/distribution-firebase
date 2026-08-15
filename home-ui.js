@@ -66,6 +66,10 @@ window.saveHomeAdminEmail = async function () {
   msgEl.textContent = r.message || (r.ok ? 'تم الحفظ.' : 'تعذّر الحفظ.');
 };
 
+// نتذكر آخر عدد شفناه بكل شارة عشان نعرف "زاد العدد" (وصل شي جديد فعليًا) مقابل "لسه نفس
+// القديم" - عشان الصوت يشتغل بس لحظة وصول شي جديد، مو بكل فحص دوري (كل 15 ثانية) حتى لو ما
+// تغيّر شي. null يعني "أول فحص" (بعد تحميل الصفحة) - ما نشغّل صوت وقتها حتى لا يفاجئ المستخدم.
+let _lastPendingCount = null, _lastChatCount = null;
 async function refreshNotifBell() {
   const r = await window.api.settings.badgeCount();
   const bell = document.getElementById('notifBell');
@@ -73,10 +77,12 @@ async function refreshNotifBell() {
     if (r.ok && r.count > 0) {
       document.getElementById('notifBellCount').textContent = r.count;
       bell.style.display = 'block';
+      if (_lastPendingCount !== null && r.count > _lastPendingCount && typeof window.playNotifSound === 'function') window.playNotifSound('message');
     } else {
       bell.style.display = 'none';
     }
   }
+  if (r.ok) _lastPendingCount = r.count;
   // شارة الرسائل الجديدة - تشتغل للإدارة والفروع الاثنين (بعكس شارة طلبات الانضمام اللي
   // للإدارة فقط)، عشان الفرع يعرف إن فيه رسالة جديدة وصلته بدون ما يحتاج يفتح الدردشة يتأكد.
   const chatBell = document.getElementById('chatNotifBell');
@@ -85,9 +91,11 @@ async function refreshNotifBell() {
     if (cr.ok && cr.count > 0) {
       document.getElementById('chatNotifBellCount').textContent = cr.count;
       chatBell.style.display = 'block';
+      if (_lastChatCount !== null && cr.count > _lastChatCount && typeof window.playNotifSound === 'function') window.playNotifSound('message');
     } else {
       chatBell.style.display = 'none';
     }
+    if (cr.ok) _lastChatCount = cr.count;
   }
 }
 
