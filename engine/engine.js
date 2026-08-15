@@ -240,11 +240,17 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
       } else if (manual) {
         baseNeed = Math.max(0, cfg.manualQty);
       } else if (isBranchLimitMode) {
-        const minTarget = bl.min;
+        // العطل كان هنا بالضبط: كنا نستخدم "bl.min" كما هو (رقم الحد نفسه، مثلاً 12) كاحتياج
+        // مباشر، بدل حساب "الناقص فعليًا للوصول للحد" (الحد - المخزون الحالي - اللي بالطريق).
+        // هذا كان يخلي هذا الوضع (الزر المستقل "حدود الفروع الخاصة") يتصرف بشكل عشوائي/وهمي
+        // (يرسل كمية الحد كاملة حتى لو الفرع عنده مخزون قريب من الحد أصلًا). الآن نستخدم نفس
+        // منطق "العجز" المستخدم بباقي أوضاع التشغيل (Turbo/BIG DATA) كأرضية دنيا: لو الحد = 12
+        // والمخزون = 8 (وما فيه شي بالطريق)، الناقص = 12 - 8 = 4، فيصير الاحتياج 4 بالضبط.
+        const minFloorNeed = Math.max(0, bl.min - dv.stock - dv.incoming);
         const salesNeed = daily > 0 ? Math.max(0, Math.ceil(daily * cfg.cover - dv.stock - dv.incoming)) : 0;
         if (String(cfg.branchLimitMode) === 'المبيعات') baseNeed = salesNeed;
-        else if (salesNeed <= minTarget) { baseNeed = minTarget; bypassStack = true; }
-        else baseNeed = salesNeed;
+        else if (salesNeed <= minFloorNeed) { baseNeed = minFloorNeed; bypassStack = true; }
+        else baseNeed = salesNeed; // المبيعات أعلى من الحد - نوزّع حسب المبيعات والتغطية بدل الحد
       } else if (daily > 0) {
         baseNeed = Math.max(0, Math.ceil(daily * cfg.cover - dv.stock - dv.incoming));
       } else if (!manual && cfg.salesRaise > 0) {
