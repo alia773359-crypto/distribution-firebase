@@ -116,10 +116,16 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
     if (!selectedDests.length) throw new Error('لا توجد أي وجهة من ضمن الوجهات المحددة لها حد أدنى خاص. هذا الوضع يعمل فقط على الفروع التي أدخلت لها حد أدنى.');
   }
 
-  // صفحة "المنتجات التي يحتاج لها توزيع" هي القائمة المعتمدة (وليست كل منتجات المخزون).
-  const needList = (ctx.needRows && ctx.needRows.length)
-    ? ctx.needRows
-    : ctx.barcodes.filter(b => b).map(b => ({ barcode: b, name: (ctx.products[b] && ctx.products[b].name) || '', overrides: [] }));
+  // صفحة "المنتجات التي يحتاج لها توزيع" هي القائمة المعتمدة (وليست كل منتجات المخزون) - لكن
+  // هذا لا يناسب زر "حدود الفروع الخاصة": هدفه بالضبط هو فحص *كل* منتجات المخزون (مو بس
+  // القائمة المُعدَّة يدويًا) عشان يوصل كل فرع محدد له حد للحد المطلوب، حتى لو المنتج نفسه غير
+  // مُدرَج أصلًا بصفحة "يحتاج توزيع". فبهذا الوضع تحديدًا نتجاهل تلك الصفحة ونستخدم كل باركودات
+  // المخزون مباشرة (مع احترام فلاتر الفئة/البراند العادية أدناه كما هي).
+  const needList = isBranchLimitMode
+    ? ctx.barcodes.filter(b => b).map(b => ({ barcode: b, name: (ctx.products[b] && ctx.products[b].name) || '', overrides: [] }))
+    : (ctx.needRows && ctx.needRows.length)
+      ? ctx.needRows
+      : ctx.barcodes.filter(b => b).map(b => ({ barcode: b, name: (ctx.products[b] && ctx.products[b].name) || '', overrides: [] }));
   const isTurboOrBigData = (mode === 'Turbo' || mode === 'BIG DATA');
   const toArrCat = v => Array.isArray(v) ? v.filter(Boolean) : (v ? [v] : []);
   const fMainCat = toArrCat(cfg.filterMainCategory), fSubCat = toArrCat(cfg.filterSubCategory), fBrandCat = toArrCat(cfg.filterBrand);
