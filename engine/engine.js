@@ -599,11 +599,15 @@ function shortageFromWarehouses(cfg, ctx, opt) {
         return;
       }
       let anyPlaced = false, anyBelowMinTr = false;
+      const blDestSh = cfg.branchLimits && cfg.branchLimits[dest.id];
+      const hasLimitSh = blDestSh && blDestSh.min !== undefined;
       srcAvail.forEach(x => {
         if (x.avail <= 0) return;
         let suggestQty = Math.min(sh.qty, x.avail);
         const minTr = num(cfg.minTr);
-        if (minTr > 0 && suggestQty < minTr) {
+        // لو الوجهة عندها حد خاص محدد، نتجاوز "أقل تحويل" كليًا - الكمية هنا أصلًا دقيقة (فرق
+        // الحد عن المخزون الحالي)، ورفعها لأعلى أو رفضها يُفسد الدقة المقصودة من الحد نفسه.
+        if (!hasLimitSh && minTr > 0 && suggestQty < minTr) {
           if (x.avail >= minTr) suggestQty = minTr; else { anyBelowMinTr = true; return; }
         }
         anyPlaced = true;
@@ -675,7 +679,10 @@ function shortageBranchToBranch(cfg, ctx, opt) {
       let suggestQty = best ? Math.min(sh.qty, bestAvail) : 0;
       const minTr = num(cfg.minTr);
       let belowMinTr = false;
-      if (best && suggestQty > 0 && minTr > 0 && suggestQty < minTr) {
+      const blDestSh2 = cfg.branchLimits && cfg.branchLimits[dest.id];
+      const hasLimitSh2 = blDestSh2 && blDestSh2.min !== undefined;
+      // نفس المبدأ: الوجهة اللي عندها حد خاص تتجاوز "أقل تحويل" كليًا - الكمية دقيقة ومقصودة.
+      if (!hasLimitSh2 && best && suggestQty > 0 && minTr > 0 && suggestQty < minTr) {
         if (bestAvail >= minTr) suggestQty = minTr; else belowMinTr = true;
       }
       if (best && suggestQty > 0 && !belowMinTr) {
