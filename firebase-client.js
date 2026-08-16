@@ -903,11 +903,11 @@ function branchRowsToAoA(rows) {
   const allSrcSalesZero = rows.length > 0 && rows.every(r => !r.srcS90 && !r.srcS30);
   const heads = ['Run ID', 'الباركود', 'اسم المنتج', 'الأولوية', 'الفئة', 'تاريخ آخر شراء', 'كمية آخر شراء', 'استلام آخر 10 أيام', 'المصدر', 'اسم المصدر'];
   if (!allSrcSalesZero) heads.push('مبيعات 3 أشهر المصدر', 'مبيعات 30 يوم المصدر');
-  heads.push('مخزون المصدر قبل', 'المتبقي بالمصدر', 'الوجهة', 'اسم الوجهة', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'الكمية المحولة', 'فئة A', 'نوع الأمر', 'الاحتياج', 'هدف التغطية', 'سبب اختيار المصدر', 'تغطية قبل', 'تغطية بعد', 'درجة الخطر', 'سقف التصنيع الخاص');
+  heads.push('مخزون المصدر قبل', 'المتبقي بالمصدر', 'الوجهة', 'اسم الوجهة', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'نُقل من (لنفس المنتج، حسب شيت "نقل من")', 'الكمية المحولة', 'فئة A', 'نوع الأمر', 'الاحتياج', 'هدف التغطية', 'سبب اختيار المصدر', 'تغطية قبل', 'تغطية بعد', 'درجة الخطر', 'سقف التصنيع الخاص');
   const body = rows.map(r => {
     const row = [r.runId, r.barcode, r.name, r.priority, r.category, r.purchaseDate, r.purchaseQty, r.rec10, r.srcId, r.srcAr];
     if (!allSrcSalesZero) row.push(r.srcS90 || 0, r.srcS30 || 0);
-    row.push(r.srcStock, r.srcRemain, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming || 0, r.qty, r.aClass, r.mode, r.need, r.coverTarget, r.reason, r.beforeDays, r.afterDays, r.risk, r.specCap || 0);
+    row.push(r.srcStock, r.srcRemain, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming || 0, r.movedFrom || '', r.qty, r.aClass, r.mode, r.need, r.coverTarget, r.reason, r.beforeDays, r.afterDays, r.risk, r.specCap || 0);
     return row;
   });
   return [heads, ...body];
@@ -918,13 +918,13 @@ function raiseRowsToAoA(rows) {
   return [heads, ...body];
 }
 function shortageWhRowsToAoA(rows) {
-  const heads = ['الباركود', 'اسم المنتج', 'فئة المنتج', 'اسم المصدر', 'الوجهة', 'اسم الوجهة عربي', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'النقص المحسوب', 'هدف تغطية الأيام', 'مخزون المستودع', 'المتاح من هذا المستودع (فوق حد المستودع)', 'الكمية المقترحة للتحويل', 'سبب اعتبار المنتج ناقص'];
-  const body = rows.map(r => [r.barcode, r.name, r.category, r.srcAr, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming, r.need, r.cover, r.srcStock, r.srcAvail, r.qty, r.why]);
+  const heads = ['الباركود', 'اسم المنتج', 'فئة المنتج', 'اسم المصدر', 'الوجهة', 'اسم الوجهة عربي', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'نُقل من (لنفس المنتج، حسب شيت "نقل من")', 'النقص المحسوب', 'هدف تغطية الأيام', 'مخزون المستودع', 'المتاح من هذا المستودع (فوق حد المستودع)', 'الكمية المقترحة للتحويل', 'سبب اعتبار المنتج ناقص'];
+  const body = rows.map(r => [r.barcode, r.name, r.category, r.srcAr, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming, r.movedFrom || '', r.need, r.cover, r.srcStock, r.srcAvail, r.qty, r.why]);
   return [heads, ...body];
 }
 function shortageBrRowsToAoA(rows) {
-  const heads = ['الباركود', 'اسم المنتج', 'المصدر', 'اسم المصدر', 'مبيعات 3 أشهر المصدر', 'مبيعات 30 يوم المصدر', 'مخزون المصدر قبل', 'المتبقي بالمصدر بعد الاقتراح', 'الوجهة', 'اسم الوجهة عربي', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'النقص المحسوب', 'هدف تغطية الأيام', 'الكمية المقترحة للتوزيع', 'سبب اعتبار المنتج ناقص'];
-  const body = rows.map(r => [r.barcode, r.name, r.srcId, r.srcAr, r.srcS90, r.srcS30, r.srcStock, r.srcRemain, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming, r.need, r.cover, r.qty, r.why]);
+  const heads = ['الباركود', 'اسم المنتج', 'المصدر', 'اسم المصدر', 'مبيعات 3 أشهر المصدر', 'مبيعات 30 يوم المصدر', 'مخزون المصدر قبل', 'المتبقي بالمصدر بعد الاقتراح', 'الوجهة', 'اسم الوجهة عربي', 'مبيعات 3 أشهر الوجهة', 'مبيعات 30 يوم الوجهة', 'مخزون الوجهة', 'في التحويل للوجهة', 'نُقل من (لنفس المنتج، حسب شيت "نقل من")', 'النقص المحسوب', 'هدف تغطية الأيام', 'الكمية المقترحة للتوزيع', 'سبب اعتبار المنتج ناقص'];
+  const body = rows.map(r => [r.barcode, r.name, r.srcId, r.srcAr, r.srcS90, r.srcS30, r.srcStock, r.srcRemain, r.destId, r.destAr, r.destS90, r.destS30, r.destStock, r.destIncoming, r.movedFrom || '', r.need, r.cover, r.qty, r.why]);
   return [heads, ...body];
 }
 

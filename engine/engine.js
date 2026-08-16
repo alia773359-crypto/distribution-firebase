@@ -99,6 +99,19 @@ const ZERO_SALES_REJECT_REASON = 'مبيعات الوجهة صفر وتم ضبط
 function runDistribution(mode, manual, cfg, ctx, onProgress) {
   const t0 = Date.now(), rid = runId();
   const readers = makeReaders(ctx);
+  // ملخّص "نُقل من" لكل منتج: شيت "نقل من" بالإكسل (ctx.moved) يخزّن رقمًا لكل فرع/مستودع لكل
+  // منتج (كم انتقل من هذا الموقع)، بدون ذكر الوجهة صراحة داخل نفس الجدول. هذا يبني جملة نصية
+  // مختصرة تجمع كل المواقع اللي فيها رقم أكبر من صفر بنفس الخلية، مثال: "الهايبر: 6، الاونلاين: 4"
+  // - عمود إضافي منفصل تمامًا عن "اسم المصدر" (اللي يوضّح مصدر عملية التوزيع الحالية نفسها).
+  function movedFromSummary(b) {
+    const m = (ctx.moved && ctx.moved[b]) || {};
+    const parts = [];
+    Object.keys(m).forEach(locId => {
+      const qty = num(m[locId]);
+      if (qty > 0) { const loc = locations.locById(cfg.locConfig || {}, locId); parts.push((loc.ar || locId) + ': ' + qty); }
+    });
+    return parts.join('، ');
+  }
   const isExceptional = (mode === 'السحب الكامل الاستثنائي' || mode === 'exceptional');
   const isBranchLimitMode = (mode === 'حدود الفروع الخاصة');
   // وضع جديد ومنفصل تمامًا عن "حدود الفروع الخاصة" - نفس فكرة "الحد يعمل كأرضية دنيا"، لكن
@@ -220,7 +233,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
           const pur = readers.purch(b), cat = readers.category(b), af = readers.isA(b) ? 'A' : '', risk = beforeDays <= 3 ? 'مرتفع' : beforeDays <= 7 ? 'متوسط' : 'منخفض';
           const afterDays = daily > 0 ? Math.floor((curDestStock(dv, dest.id) + q) / daily) : 9999, remainSrc = Math.max(0, so.sv.stock - usedOf(so.s.id) - q);
           const reason = (so.isWh ? 'مستودع مختار - أولوية المستودعات' : 'أفضل مصدر حسب درجة الفائض والمبيعات والنقل الحالي') + ' / فائض: ' + so.av + ' / درجة المصدر: ' + Math.round(so.score) + ' / كمية مخصصة من صفحة الاحتياج: ' + o.qty;
-          const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, qty: q, aClass: af, mode, need: o.qty, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
+          const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, movedFrom: movedFromSummary(b), qty: q, aClass: af, mode, need: o.qty, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
           (so.isWh ? wout : bout).push(record);
           history.push([rid, new Date().toISOString(), b, name, so.s.id, so.s.ar, dest.id, dest.ar, q, mode, reason]);
           register(so.s.id, dest.id, q);
@@ -358,7 +371,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
             const afterDays = daily > 0 ? Math.floor((curDestStock(dv, dest.id) + unit) / daily) : 9999;
             const remainSrc = Math.max(0, so.sv.stock - usedOf(so.s.id) - unit);
             const reason = 'سحب كامل وتقسيم بالتساوي على ' + cnt + ' وجهة / نصيب هذه الوجهة: ' + unit + ' / درجة المصدر: ' + Math.round(so.score) + ' / المتبقي من المصدر بعد السحب: ' + remainSrc;
-            const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, qty: unit, aClass: af, mode, need: so.av, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
+            const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, movedFrom: movedFromSummary(b), qty: unit, aClass: af, mode, need: so.av, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk };
             (so.isWh ? wout : bout).push(record);
             history.push([rid, new Date().toISOString(), b, name, so.s.id, so.s.ar, dest.id, dest.ar, unit, mode, reason]);
             register(so.s.id, dest.id, unit);
@@ -473,7 +486,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         const afterDays = daily > 0 ? Math.floor((curDestStock(dv, dest.id) + q) / daily) : 9999;
         const remainSrc = Math.max(0, so.sv.stock - usedOf(so.s.id) - q);
         const reason = (so.isWh ? 'مستودع مختار - أولوية المستودعات' : 'أفضل مصدر حسب الفائض والمبيعات') + ' / فائض: ' + so.av + ' / درجة المصدر: ' + Math.round(so.score);
-        const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, qty: q, aClass: af, mode, need, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk, specCap: sp };
+        const record = { runId: rid, barcode: b, name, priority: prio, category: cat, purchaseDate: pur.date, purchaseQty: pur.qty, rec10: dv.rec10, srcId: so.s.id, srcAr: so.s.ar, srcS90: so.sv.s90, srcS30: so.sv.s30, srcStock: so.sv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, movedFrom: movedFromSummary(b), qty: q, aClass: af, mode, need, coverTarget: cfg.cover, reason, beforeDays, afterDays, risk, specCap: sp };
         (so.isWh ? wout : bout).push(record);
         history.push([rid, new Date().toISOString(), b, name, so.s.id, so.s.ar, dest.id, dest.ar, q, mode, reason]);
         register(so.s.id, dest.id, q);
@@ -652,7 +665,7 @@ function shortageFromWarehouses(cfg, ctx, opt) {
         anyPlaced = true;
         const sheetName = ('نواقص من ' + x.so.ar).substring(0, 31);
         if (!bySheet[sheetName]) bySheet[sheetName] = [];
-        bySheet[sheetName].push({ barcode: b, name, category: cat, srcAr: x.so.ar, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, need: sh.qty, cover: cfg.cover, srcStock: x.sv.stock, srcAvail: x.avail, qty: suggestQty, why: sh.why });
+        bySheet[sheetName].push({ barcode: b, name, category: cat, srcAr: x.so.ar, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, movedFrom: movedFromSummary(b), need: sh.qty, cover: cfg.cover, srcStock: x.sv.stock, srcAvail: x.avail, qty: suggestQty, why: sh.why });
       });
       if (!anyPlaced) {
         const reason = anyBelowMinTr ? 'يوجد نقص وفائض بالمستودعات لكنه أقل من أقل كمية تحويل محددة بالإعدادات السريعة' : 'يوجد نقص لكن لا توجد كمية فوق حد المستودع في أي مستودع مصدر محدد';
@@ -727,7 +740,7 @@ function shortageBranchToBranch(cfg, ctx, opt) {
       if (best && suggestQty > 0 && !belowMinTr) {
         usedSrc[best.id] = num(usedSrc[best.id]) + suggestQty;
         const remainSrc = Math.max(0, bestSv.stock - usedSrc[best.id]);
-        out.push({ barcode: b, name, srcId: best.id, srcAr: best.ar, srcS90: bestSv.s90, srcS30: bestSv.s30, srcStock: bestSv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, need: sh.qty, cover: cfg.cover, qty: suggestQty, why: sh.why });
+        out.push({ barcode: b, name, srcId: best.id, srcAr: best.ar, srcS90: bestSv.s90, srcS30: bestSv.s30, srcStock: bestSv.stock, srcRemain: remainSrc, destId: dest.id, destAr: dest.ar, destS90: dv.s90, destS30: dv.s30, destStock: dv.stock, destIncoming: dv.incoming, movedFrom: movedFromSummary(b), need: sh.qty, cover: cfg.cover, qty: suggestQty, why: sh.why });
       } else {
         const reason = belowMinTr ? 'يوجد نقص وفائض من الفروع لكنه أقل من أقل كمية تحويل محددة بالإعدادات السريعة' : 'يوجد نقص لكن لا يوجد فائض كافٍ من الفروع المصدر المحددة';
         reject(noSourceRaise, rid, 'RSH2', b, name, 0, dest.id, dest.ar, reason, 'لا يوجد فائض كافٍ من الفروع المحددة', 'النقص المحسوب: ' + sh.qty + ' / أقل كمية تحويل: ' + cfg.minTr, sh.qty, dv.incoming, sh.qty, 'نواقص من الفروع');
