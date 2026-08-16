@@ -101,6 +101,11 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
   const readers = makeReaders(ctx);
   const isExceptional = (mode === 'السحب الكامل الاستثنائي' || mode === 'exceptional');
   const isBranchLimitMode = (mode === 'حدود الفروع الخاصة');
+  // وضع جديد ومنفصل تمامًا عن "حدود الفروع الخاصة" - نفس فكرة "الحد يعمل كأرضية دنيا"، لكن
+  // بقاعدة أذكى: لا نوزّع/نرفع لأقل تحويل إلا لو الطلب المتوقع بفترة التغطية (المعدل اليومي ×
+  // أيام التغطية) يوصل لأقل تحويل نفسه أو أعلى - أي فيه زخم مبيعات حقيقي يبرر الكمية. لو
+  // المبيعات صفر تمامًا (منتج جديد أو منقطع)، نتجاوز هذا الشرط ونعطي كامل الحد مباشرة.
+  const isSmartLimitMode = (mode === 'الحد الذكي');
   const isBigData = (mode === 'BIG DATA');
 
   const allLocs = locations.allLocations(cfg.locConfig || {});
@@ -111,17 +116,17 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
   let selectedDests = allLocs.filter(x => dstSet[x.id]);
   if (!selectedSources.length) throw new Error('لم يتم تحديد أي مصدر');
   if (!selectedDests.length) throw new Error('لم يتم تحديد أي وجهة');
-  if (isBranchLimitMode) {
+  if (isBranchLimitMode || isSmartLimitMode) {
     selectedDests = selectedDests.filter(d => cfg.branchLimits[d.id] && cfg.branchLimits[d.id].min !== undefined);
     if (!selectedDests.length) throw new Error('لا توجد أي وجهة من ضمن الوجهات المحددة لها حد أدنى خاص. هذا الوضع يعمل فقط على الفروع التي أدخلت لها حد أدنى.');
   }
 
   // صفحة "المنتجات التي يحتاج لها توزيع" هي القائمة المعتمدة (وليست كل منتجات المخزون) - لكن
-  // هذا لا يناسب زر "حدود الفروع الخاصة": هدفه بالضبط هو فحص *كل* منتجات المخزون (مو بس
-  // القائمة المُعدَّة يدويًا) عشان يوصل كل فرع محدد له حد للحد المطلوب، حتى لو المنتج نفسه غير
-  // مُدرَج أصلًا بصفحة "يحتاج توزيع". فبهذا الوضع تحديدًا نتجاهل تلك الصفحة ونستخدم كل باركودات
-  // المخزون مباشرة (مع احترام فلاتر الفئة/البراند العادية أدناه كما هي).
-  const needList = isBranchLimitMode
+  // هذا لا يناسب أوضاع "حدود الفروع الخاصة"/"الحد الذكي": هدفهم بالضبط هو فحص *كل* منتجات
+  // المخزون (مو بس القائمة المُعدَّة يدويًا) عشان يوصل كل فرع محدد له حد للحد المطلوب، حتى لو
+  // المنتج نفسه غير مُدرَج أصلًا بصفحة "يحتاج توزيع". فبهذا الوضع تحديدًا نتجاهل تلك الصفحة
+  // ونستخدم كل باركودات المخزون مباشرة (مع احترام فلاتر الفئة/البراند العادية أدناه كما هي).
+  const needList = (isBranchLimitMode || isSmartLimitMode)
     ? ctx.barcodes.filter(b => b).map(b => ({ barcode: b, name: (ctx.products[b] && ctx.products[b].name) || '', overrides: [] }))
     : (ctx.needRows && ctx.needRows.length)
       ? ctx.needRows
@@ -257,6 +262,32 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         if (String(cfg.branchLimitMode) === 'المبيعات') baseNeed = salesNeed;
         else if (salesNeed <= minFloorNeed) { baseNeed = minFloorNeed; bypassStack = true; }
         else baseNeed = salesNeed; // المبيعات أعلى من الحد - نوزّع حسب المبيعات والتغطية بدل الحد
+      } else if (isSmartLimitMode) {
+        // "الحد الذكي": نفس فكرة الحد الأدنى، لكن قبل ما نوزّع أو نرفع لأقل تحويل، نتحقق من
+        // زخم المبيعات أولًا. القاعدة: الطلب المتوقع خلال فترة التغطية (المعدل اليومي × أيام
+        // التغطية) لازم يوصل لأقل تحويل نفسه أو أعلى - أي فيه مبيعات كافية تبرر الكمية. لو
+        // الطلب المتوقع أقل من أقل تحويل، نرفض هذا الصنف لهذا الفرع كليًا (حتى لو فيه احتياج
+        // بسيط حسب الحد). الاستثناء الوحيد: مبيعات = صفر تمامًا (منتج جديد أو منقطع) - هنا
+        // نتجاوز بوابة التحقق ونعطي كامل الحد الناقص مباشرة، لأن غياب المبيعات هنا سببه عدم
+        // التوفر لا ضعف الطلب.
+        const minFloorNeedSmart = Math.max(0, bl.min - dv.stock - dv.incoming);
+        if (daily <= 0) {
+          baseNeed = minFloorNeedSmart;
+          bypassStack = true;
+        } else {
+          const grossDemand = daily * cfg.cover;
+          const minTrGate = num(cfg.minTr);
+          if (minTrGate > 0 && grossDemand < minTrGate) {
+            baseNeed = 0; // زخم المبيعات لا يكفي حتى لأقل تحويل - رفض كامل لهذا الفرع/الصنف
+          } else {
+            const salesNeedSmart = Math.max(0, Math.ceil(grossDemand - dv.stock - dv.incoming));
+            baseNeed = Math.max(salesNeedSmart, minFloorNeedSmart);
+            // زخم المبيعات كافٍ (اجتاز البوابة أعلاه) - فنرفع الكمية لأقل تحويل لو طلعت أقل منه،
+            // لأن المبيعات أثبتت إنها كافية لتبرير هذا الحد الأدنى من الكمية.
+            if (minTrGate > 0 && baseNeed > 0 && baseNeed < minTrGate) baseNeed = minTrGate;
+            bypassStack = true;
+          }
+        }
       } else if (daily > 0) {
         baseNeed = Math.max(0, Math.ceil(daily * cfg.cover - dv.stock - dv.incoming));
       } else if (!manual && cfg.salesRaise > 0) {
@@ -275,7 +306,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
       // المطلوب لذاك الفرع (يعني ياخذ الأكبر بين احتياج المبيعات/الكمية اليدوية وبين "الحد -
       // المخزون الحالي"). ملاحظة: "Turbo يدوي" (manual) كان مستثنى من هذا سابقًا بالغلط، وهذا
       // كان يخلي الكمية اليدوية المحددة تتجاهل حدود الفروع بالكامل - تم تفعيله له الآن أيضًا.
-      if (!isExceptional && !isBranchLimitMode && bl && bl.min !== undefined) {
+      if (!isExceptional && !isBranchLimitMode && !isSmartLimitMode && bl && bl.min !== undefined) {
         const minFloorNeed = Math.max(0, bl.min - dv.stock - dv.incoming);
         if (minFloorNeed > baseNeed) baseNeed = minFloorNeed;
       }

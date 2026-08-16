@@ -1107,6 +1107,7 @@ window.api = {
     manual: (u) => doRun('Turbo يدوي', true, u, 'manual'),
     exceptional: (u) => doRun('السحب الكامل الاستثنائي', false, u, 'exceptional'),
     branchLimit: (u) => doRun('حدود الفروع الخاصة', false, u, 'branchLimit'),
+    smartLimit: (u) => doRun('الحد الذكي', false, u, 'smartLimit'),
     preview20: (u) => doRun('Turbo', false, u, 'preview20'),
     shortageWarehouses: (u) => runShortageWarehouses(u),
     shortageBranches: (u) => runShortageBranches(u),
