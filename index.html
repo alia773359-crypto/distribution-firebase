@@ -230,6 +230,11 @@ body{overflow:hidden} .desktop{display:grid;grid-template-columns:200px 1fr;heig
 <div class="cmdCard" onclick="callRun('aliShortageFromWarehouses')"><div class="ic">🏬</div><div class="ti">نواقص الفروع من المستودعات</div><div class="de">يقترح تغطية كل نقص من كل مستودع مصدر على حدة (صفحة منفصلة لكل مستودع).</div></div>
 <div class="cmdCard gold" onclick="callRun('aliShortageBranchToBranch')"><div class="ic">🏪</div><div class="ti">نواقص الفروع من الفروع</div><div class="de">يختار لكل نقص أفضل فرع مصدر واحد فيه فائض كافٍ.</div></div>
 </div>
+<div class="softTitle" style="margin-top:12px">🎯 حدود الفروع الخاصة</div>
+<div class="cmdGrid">
+<div class="cmdCard btnViolet" onclick="callRun('aliBranchLimitRun')"><div class="ic">🎯</div><div class="ti">حدود الفروع الخاصة</div><div class="de">يعمل فقط على الفروع اللي حددت لها "حد أدنى" (راجع بطاقة حدود الفروع الخاصة أسفل الصفحة).</div></div>
+<div class="cmdCard btnViolet" onclick="callRun('aliSmartLimitRun')"><div class="ic">🧠</div><div class="ti">الحد الذكي</div><div class="de">نفس حدود الفروع الخاصة، لكن يتحقق من زخم المبيعات أول قبل ما يوزّع أو يرفع لأقل تحويل.</div></div>
+</div>
 <label style="margin-top:8px">حد اعتبار الفرع ناقص إضافي (مخزون) <span style="font-size:10px;color:#64748b">0 = تجاهل، اعتمد على نفس منطق BIG DATA فقط</span></label><input id="shortageStockThreshold" value="0" type="number"><div class="tiny">يكتشف حتى المنتجات التي يرفضها BIG DATA بسبب صفر مبيعات (مثل المنتجات الجديدة) - إذا مخزون الوجهة عند هذا الحد أو أقل، يُعتبر نقصًا بغض النظر عن قاعدة المبيعات الصفرية.</div>
 <div class="msg" id="shortageCatSummary" style="margin-top:8px">لم يتم تحديد أي فئة بعد - كل المنتجات ستدخل التشغيل. لتحديد فئات معينة، روح صفحة "🏷️ الفئات" من القائمة الجانبية واضغط "حفظ التحديد".</div>
 </div>

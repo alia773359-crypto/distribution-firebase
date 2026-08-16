@@ -267,16 +267,21 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         // زخم المبيعات أولًا. القاعدة: الطلب المتوقع خلال فترة التغطية (المعدل اليومي × أيام
         // التغطية) لازم يوصل لأقل تحويل نفسه أو أعلى - أي فيه مبيعات كافية تبرر الكمية. لو
         // الطلب المتوقع أقل من أقل تحويل، نرفض هذا الصنف لهذا الفرع كليًا (حتى لو فيه احتياج
-        // بسيط حسب الحد). الاستثناء الوحيد: مبيعات = صفر تمامًا (منتج جديد أو منقطع) - هنا
-        // نتجاوز بوابة التحقق ونعطي كامل الحد الناقص مباشرة، لأن غياب المبيعات هنا سببه عدم
-        // التوفر لا ضعف الطلب.
+        // بسيط حسب الحد). حالة مبيعات = صفر تمامًا (منتج جديد أو منقطع) لها نفس القاعدة
+        // بالضبط: النقص نفسه (الحد - المخزون) لازم يوصل لأقل تحويل أو أعلى، وإلا رفض كليًا -
+        // لا نرفعه أبدًا لأقل تحويل هنا (بعكس حالة المبيعات النشطة)، لأن ما فيه مبيعات أصلًا
+        // تبرر "الرفع" لكمية أكبر من النقص الفعلي المطلوب.
         const minFloorNeedSmart = Math.max(0, bl.min - dv.stock - dv.incoming);
+        const minTrGate = num(cfg.minTr);
         if (daily <= 0) {
-          baseNeed = minFloorNeedSmart;
-          bypassStack = true;
+          if (minTrGate <= 0 || minFloorNeedSmart >= minTrGate) {
+            baseNeed = minFloorNeedSmart;
+            bypassStack = true;
+          } else {
+            baseNeed = 0; // نقص صغير (أقل من أقل تحويل) + مبيعات صفرية - لا نوزّع شي
+          }
         } else {
           const grossDemand = daily * cfg.cover;
-          const minTrGate = num(cfg.minTr);
           if (minTrGate > 0 && grossDemand < minTrGate) {
             baseNeed = 0; // زخم المبيعات لا يكفي حتى لأقل تحويل - رفض كامل لهذا الفرع/الصنف
           } else {
@@ -431,7 +436,10 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         if (so.av <= 0) continue;
         let q = Math.min(rem, so.av);
         let capKeepQty = Infinity;
-        if (!isExceptional && cfg.keepQty > 0) {
+        // نفس مبدأ تجاوز "منع التكدس" و"أقل تحويل" للفروع المحددة لها حد خاص: كان هذا القيد
+        // (الاحتفاظ باحتياطي عند المصدر) يقص الكمية حتى لو الفرع له حد دقيق ومقصود - فكانت
+        // النتيجة توصيل أقل من الحد المطلوب بدون أي سبب واضح للمستخدم. الآن يتجاوزه أيضًا.
+        if (!isExceptional && !d.bypassStack && cfg.keepQty > 0) {
           capKeepQty = Math.max(0, so.sv.stock - usedOf(so.s.id) - cfg.keepQty);
           q = Math.min(q, capKeepQty);
         }
