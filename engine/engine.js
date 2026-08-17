@@ -120,6 +120,9 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
   // المبيعات صفر تمامًا (منتج جديد أو منقطع)، نتجاوز هذا الشرط ونعطي كامل الحد مباشرة.
   const isSmartLimitMode = (mode === 'الحد الذكي');
   const isBigData = (mode === 'BIG DATA');
+  // رقم "أقل تحويل" خاص بوضع "الحد الذكي" فقط - ثابت بالكود، مستقل تمامًا عن إعداد "أقل تحويل"
+  // العام بالإعدادات السريعة (ذاك الإعداد يخص Turbo/BIG DATA/حدود الفروع الخاصة فقط).
+  const SMART_LIMIT_MIN_TR = 3;
 
   const allLocs = locations.allLocations(cfg.locConfig || {});
   const srcSet = {}, dstSet = {};
@@ -285,7 +288,12 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         // لا نرفعه أبدًا لأقل تحويل هنا (بعكس حالة المبيعات النشطة)، لأن ما فيه مبيعات أصلًا
         // تبرر "الرفع" لكمية أكبر من النقص الفعلي المطلوب.
         const minFloorNeedSmart = Math.max(0, bl.min - dv.stock - dv.incoming);
-        const minTrGate = num(cfg.minTr);
+        // مهم جدًا: "الحد الذكي" مستقل تمامًا عن إعداد "أقل تحويل" العام بالإعدادات السريعة (اللي
+        // يخدم Turbo/BIG DATA وغيرها) - له رقمه الخاص الثابت (3) مبرمج بالكود مباشرة، بغض النظر
+        // عن أي قيمة يحطها المستخدم بذاك الإعداد العام. تغيير الإعداد العام مستقبلًا (لأي رقم)
+        // ما يأثر على هذا الوضع إطلاقًا - وهذا الرقم (SMART_LIMIT_MIN_TR) نفسه يُستخدم لاحقًا
+        // بكل فحوصات "أقل تحويل" الخاصة بهذا الوضع تحديدًا (بالمصدر والفلتر النهائي) للاتساق.
+        const minTrGate = SMART_LIMIT_MIN_TR;
         if (daily <= 0) {
           if (minTrGate <= 0 || minFloorNeedSmart >= minTrGate) {
             baseNeed = minFloorNeedSmart;
@@ -464,7 +472,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
           capMaxCover = qMax; q = Math.min(q, qMax);
         }
         if (q <= 0) { reject(raise, rid, 'R010', b, name, prio, dest.id, dest.ar, 'كمية التحويل المحسوبة = 0', 'تحويل صفر', 'الاحتياج: ' + need + ' / المتبقي: ' + rem, need, dv.incoming, rem, mode); continue; }
-        const minTrEff = isExceptional ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
+        const minTrEff = isExceptional ? num(cfg.exceptionSplitMin) : (isSmartLimitMode ? SMART_LIMIT_MIN_TR : num(cfg.minTr));
         // مهم: "أقل تحويل" يبقى دائمًا حدًا أدنى للكمية *الفعلية* اللي راح تُنفَّذ فعليًا، بغض
         // النظر عن كون الوجهة عندها حد خاص أو لا. وضعا "حدود الفروع الخاصة"/"الحد الذكي" أصلًا
         // يضمنان إن الاحتياج المحسوب يحترم أقل تحويل من البداية (عبر منطقهما الداخلي الخاص) -
@@ -507,15 +515,15 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
     }
   });
 
-  // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى - إلا لو الوجهة عندها حد
   // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى للتحويل - ينطبق دائمًا بغض
   // النظر عن وضع التشغيل أو وجود حد خاص، عشان ما توصل أي كمية رمزية صغيرة جدًا (زي 1) بسبب
   // شح حقيقي بالمصدر حتى للفروع المحددة لها حد (تلك الفروع تُضمن دقتها من منطقها الداخلي، لا
-  // من تجاوز هذا الفحص).
+  // من تجاوز هذا الفحص). "الحد الذكي" تحديدًا يستخدم رقمه الثابت الخاص (3) دائمًا هنا، بغض
+  // النظر عن إعداد "أقل تحويل" العام - نفس الرقم المستخدم بمنطقه الداخلي أعلاه، للاتساق.
   function finalFilter(list) {
     return list.filter(r => {
       const isExc = (r.mode === 'السحب الكامل الاستثنائي' || r.mode === 'exceptional');
-      const minTr = isExc ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
+      const minTr = isExc ? num(cfg.exceptionSplitMin) : (r.mode === 'الحد الذكي' ? SMART_LIMIT_MIN_TR : num(cfg.minTr));
       if (r.qty <= 0) { reject(raise, rid, 'R010', r.barcode, r.name, r.priority, r.destId, r.destAr, 'كمية التحويل = 0', 'تحويل صفر', '', r.need, 0, 0, r.mode); return false; }
       if (minTr > 0 && r.qty < minTr) { reject(raise, rid, 'R011', r.barcode, r.name, r.priority, r.destId, r.destAr, 'أقل من أقل تحويل', 'أقل من الحد الأدنى', '', r.need, 0, r.qty, r.mode); return false; }
       return true;
