@@ -110,7 +110,7 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
       const qty = num(m[locId]);
       if (qty > 0) { const loc = locations.locById(cfg.locConfig || {}, locId); parts.push((loc.ar || locId) + ': ' + qty); }
     });
-    return parts.join('، ');
+    return parts.length ? parts.join('، ') : 0; // ما فيه أي نقل لهذا المنتج - نكتب 0 بدل ما تطلع الخلية فاضية
   }
   const isExceptional = (mode === 'السحب الكامل الاستثنائي' || mode === 'exceptional');
   const isBranchLimitMode = (mode === 'حدود الفروع الخاصة');
@@ -469,9 +469,10 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         // المبيعات - لكن لو الفرع له حد خاص محدد (حدود الفروع الخاصة)، فالكمية المحسوبة أصلًا
         // *دقيقة ومقصودة* (بالضبط الفرق بين المخزون الحالي والحد المطلوب)، فرضها لأعلى (رفع)
         // أو رفضها بسبب "أقل تحويل" يُفسد الدقة المطلوبة تمامًا (يوصّل الفرع لأكثر أو أقل من
-        // حده الفعلي). لذلك: الفروع اللي عندها حد خاص تتجاوز فحص "أقل تحويل" كليًا، وتُنفَّذ
-        // بالضبط بالكمية المحسوبة مهما كانت صغيرة. الفروع بدون حد خاص تبقى بنفس السلوك القديم.
-        const hasLimit = !isExceptional && blDest && blDest.min !== undefined;
+        // حده الفعلي). هذا التجاوز مقصور حصرًا على وضعي "حدود الفروع الخاصة" و"الحد الذكي" -
+        // حتى لو فرع آخر بوضع Turbo/BIG DATA له حد خاص محدد بالصدفة، ما يتجاوز أقل تحويل أبدًا
+        // (يبقى بنفس سلوكه الأصلي القديم تمامًا) - عشان ما نأثر على أي تشغيل ثاني غير هذين الاثنين.
+        const hasLimit = !isExceptional && (isBranchLimitMode || isSmartLimitMode) && blDest && blDest.min !== undefined;
         if (!hasLimit && minTrEff > 0 && q < minTrEff) {
           if (!isExceptional && cfg.raiseSmallNeed > 0) {
             const raiseCeil = Math.min(so.av, capKeepQty, capMaxCover);
@@ -509,13 +510,15 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
   });
 
   // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى - إلا لو الوجهة عندها حد
-  // خاص محدد (حدود الفروع الخاصة)، فهذي الكمية دقيقة ومقصودة ولازم تمر كما هي بدون رفض.
+  // خاص محدد (حدود الفروع الخاصة) **و** التشغيل نفسه أحد الوضعين المخصصين لهذا (حدود الفروع
+  // الخاصة أو الحد الذكي) - نتحقق من r.mode هنا (كل صف يخزّن وضع تشغيله بالضبط) عشان نضمن
+  // Turbo وBIG DATA ما يتأثروا أبدًا حتى لو صدفة كانت الوجهة نفسها عندها حد خاص محدد بمكان آخر.
   function finalFilter(list) {
     return list.filter(r => {
       const isExc = (r.mode === 'السحب الكامل الاستثنائي' || r.mode === 'exceptional');
       const minTr = isExc ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
       const blR = cfg.branchLimits && cfg.branchLimits[r.destId];
-      const hasLimitR = !isExc && blR && blR.min !== undefined;
+      const hasLimitR = !isExc && blR && blR.min !== undefined && (r.mode === 'حدود الفروع الخاصة' || r.mode === 'الحد الذكي');
       if (r.qty <= 0) { reject(raise, rid, 'R010', r.barcode, r.name, r.priority, r.destId, r.destAr, 'كمية التحويل = 0', 'تحويل صفر', '', r.need, 0, 0, r.mode); return false; }
       if (!hasLimitR && minTr > 0 && r.qty < minTr) { reject(raise, rid, 'R011', r.barcode, r.name, r.priority, r.destId, r.destAr, 'أقل من أقل تحويل', 'أقل من الحد الأدنى', '', r.need, 0, r.qty, r.mode); return false; }
       return true;
