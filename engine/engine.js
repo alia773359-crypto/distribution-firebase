@@ -465,15 +465,13 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         }
         if (q <= 0) { reject(raise, rid, 'R010', b, name, prio, dest.id, dest.ar, 'كمية التحويل المحسوبة = 0', 'تحويل صفر', 'الاحتياج: ' + need + ' / المتبقي: ' + rem, need, dv.incoming, rem, mode); continue; }
         const minTrEff = isExceptional ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
-        // "أقل تحويل" (minTr) مصمم أصلًا لمنع تحويلات صغيرة/مهدرة بالتوزيع العادي المعتمد على
-        // المبيعات - لكن لو الفرع له حد خاص محدد (حدود الفروع الخاصة)، فالكمية المحسوبة أصلًا
-        // *دقيقة ومقصودة* (بالضبط الفرق بين المخزون الحالي والحد المطلوب)، فرضها لأعلى (رفع)
-        // أو رفضها بسبب "أقل تحويل" يُفسد الدقة المطلوبة تمامًا (يوصّل الفرع لأكثر أو أقل من
-        // حده الفعلي). هذا التجاوز مقصور حصرًا على وضعي "حدود الفروع الخاصة" و"الحد الذكي" -
-        // حتى لو فرع آخر بوضع Turbo/BIG DATA له حد خاص محدد بالصدفة، ما يتجاوز أقل تحويل أبدًا
-        // (يبقى بنفس سلوكه الأصلي القديم تمامًا) - عشان ما نأثر على أي تشغيل ثاني غير هذين الاثنين.
-        const hasLimit = !isExceptional && (isBranchLimitMode || isSmartLimitMode) && blDest && blDest.min !== undefined;
-        if (!hasLimit && minTrEff > 0 && q < minTrEff) {
+        // مهم: "أقل تحويل" يبقى دائمًا حدًا أدنى للكمية *الفعلية* اللي راح تُنفَّذ فعليًا، بغض
+        // النظر عن كون الوجهة عندها حد خاص أو لا. وضعا "حدود الفروع الخاصة"/"الحد الذكي" أصلًا
+        // يضمنان إن الاحتياج المحسوب يحترم أقل تحويل من البداية (عبر منطقهما الداخلي الخاص) -
+        // لكن لو انخفضت الكمية الفعلية عن ذلك لاحقًا بسبب شح حقيقي بالمصدر (مثلاً كمية كبيرة من
+        // نفس المنتج "منقولة" مسبقًا من نفس المصدر لجهة ثانية)، فلازم نرفض التوزيع كليًا بدل ما
+        // نوصّل كمية رمزية (زي 1) أقل من الحد الأدنى المقبول للتحويل - نفس سلوك بقية الأوضاع.
+        if (minTrEff > 0 && q < minTrEff) {
           if (!isExceptional && cfg.raiseSmallNeed > 0) {
             const raiseCeil = Math.min(so.av, capKeepQty, capMaxCover);
             const raised = Math.min(cfg.raiseSmallNeed, raiseCeil);
@@ -510,17 +508,16 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
   });
 
   // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى - إلا لو الوجهة عندها حد
-  // خاص محدد (حدود الفروع الخاصة) **و** التشغيل نفسه أحد الوضعين المخصصين لهذا (حدود الفروع
-  // الخاصة أو الحد الذكي) - نتحقق من r.mode هنا (كل صف يخزّن وضع تشغيله بالضبط) عشان نضمن
-  // Turbo وBIG DATA ما يتأثروا أبدًا حتى لو صدفة كانت الوجهة نفسها عندها حد خاص محدد بمكان آخر.
+  // فلتر أمان نهائي: يمنع أي تحويل كميته صفر أو أقل من الحد الأدنى للتحويل - ينطبق دائمًا بغض
+  // النظر عن وضع التشغيل أو وجود حد خاص، عشان ما توصل أي كمية رمزية صغيرة جدًا (زي 1) بسبب
+  // شح حقيقي بالمصدر حتى للفروع المحددة لها حد (تلك الفروع تُضمن دقتها من منطقها الداخلي، لا
+  // من تجاوز هذا الفحص).
   function finalFilter(list) {
     return list.filter(r => {
       const isExc = (r.mode === 'السحب الكامل الاستثنائي' || r.mode === 'exceptional');
       const minTr = isExc ? num(cfg.exceptionSplitMin) : num(cfg.minTr);
-      const blR = cfg.branchLimits && cfg.branchLimits[r.destId];
-      const hasLimitR = !isExc && blR && blR.min !== undefined && (r.mode === 'حدود الفروع الخاصة' || r.mode === 'الحد الذكي');
       if (r.qty <= 0) { reject(raise, rid, 'R010', r.barcode, r.name, r.priority, r.destId, r.destAr, 'كمية التحويل = 0', 'تحويل صفر', '', r.need, 0, 0, r.mode); return false; }
-      if (!hasLimitR && minTr > 0 && r.qty < minTr) { reject(raise, rid, 'R011', r.barcode, r.name, r.priority, r.destId, r.destAr, 'أقل من أقل تحويل', 'أقل من الحد الأدنى', '', r.need, 0, r.qty, r.mode); return false; }
+      if (minTr > 0 && r.qty < minTr) { reject(raise, rid, 'R011', r.barcode, r.name, r.priority, r.destId, r.destAr, 'أقل من أقل تحويل', 'أقل من الحد الأدنى', '', r.need, 0, r.qty, r.mode); return false; }
       return true;
     });
   }
@@ -654,15 +651,13 @@ function shortageFromWarehouses(cfg, ctx, opt) {
         return;
       }
       let anyPlaced = false, anyBelowMinTr = false;
-      const blDestSh = cfg.branchLimits && cfg.branchLimits[dest.id];
-      const hasLimitSh = blDestSh && blDestSh.min !== undefined;
       srcAvail.forEach(x => {
         if (x.avail <= 0) return;
         let suggestQty = Math.min(sh.qty, x.avail);
         const minTr = num(cfg.minTr);
-        // لو الوجهة عندها حد خاص محدد، نتجاوز "أقل تحويل" كليًا - الكمية هنا أصلًا دقيقة (فرق
-        // الحد عن المخزون الحالي)، ورفعها لأعلى أو رفضها يُفسد الدقة المقصودة من الحد نفسه.
-        if (!hasLimitSh && minTr > 0 && suggestQty < minTr) {
+        // "أقل تحويل" يبقى حدًا أدنى دائمًا للكمية المقترحة الفعلية، حتى للوجهات اللي عندها حد
+        // خاص - لو المصدر ما يقدر يوفّر حتى أقل تحويل (شح حقيقي)، نرفض بدل ما نقترح كمية رمزية.
+        if (minTr > 0 && suggestQty < minTr) {
           if (x.avail >= minTr) suggestQty = minTr; else { anyBelowMinTr = true; return; }
         }
         anyPlaced = true;
@@ -734,10 +729,8 @@ function shortageBranchToBranch(cfg, ctx, opt) {
       let suggestQty = best ? Math.min(sh.qty, bestAvail) : 0;
       const minTr = num(cfg.minTr);
       let belowMinTr = false;
-      const blDestSh2 = cfg.branchLimits && cfg.branchLimits[dest.id];
-      const hasLimitSh2 = blDestSh2 && blDestSh2.min !== undefined;
-      // نفس المبدأ: الوجهة اللي عندها حد خاص تتجاوز "أقل تحويل" كليًا - الكمية دقيقة ومقصودة.
-      if (!hasLimitSh2 && best && suggestQty > 0 && minTr > 0 && suggestQty < minTr) {
+      // نفس المبدأ: "أقل تحويل" حد أدنى دائم على الكمية الفعلية المقترحة، بغض النظر عن الحد.
+      if (best && suggestQty > 0 && minTr > 0 && suggestQty < minTr) {
         if (bestAvail >= minTr) suggestQty = minTr; else belowMinTr = true;
       }
       if (best && suggestQty > 0 && !belowMinTr) {
