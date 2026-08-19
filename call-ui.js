@@ -11,6 +11,12 @@
  * يحتاج خادم TURN مخصص لضمان النجاح دائمًا، وهذا قيد معروف بأي حل WebRTC بدون TURN.
  */
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+// إصلاح صرير/صدى المكالمات عند تشغيل مكبر الصوت (Speaker): getUserMedia بدون قيود صوتية
+// (audio: true فقط) يعتمد على الإعدادات الافتراضية لإلغاء الصدى بالمتصفح، وهذي غير كافية لما
+// يرجع صوت المكبر للميكروفون (حلقة صوتية). هذا الكائن يُستخدم فقط بمسار فتح الميكروفون
+// لمكالمة حية (سطرين بالضبط أدناه) - لا علاقة له بتسجيل الرسائل الصوتية/الفيديو (تلك تبقى
+// كما هي تمامًا، بدون أي تغيير، بمكان منفصل بهذا الملف).
+const CALL_AUDIO_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
 
 let pc = null, localStream = null, callTargetId = null, isCaller = false, callKind = 'audio';
 let pendingRecorder = null, recordedChunks = [], recordKind = null;
@@ -75,7 +81,7 @@ window.startCall = async function (kind) {
   if (!info || !info.otherId) { alert('ما أقدر أحدد الطرف الآخر بهذي المحادثة.'); return; }
   callTargetId = info.otherId; callKind = kind; isCaller = true;
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: kind === 'video' });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: CALL_AUDIO_CONSTRAINTS, video: kind === 'video' });
   } catch (e) { alert('تعذّر الوصول للميكروفون' + (kind === 'video' ? '/الكاميرا' : '') + ': ' + e.message); return; }
   renderCallScreen(kind, info.name || 'مكالمة', 'جاري الاتصال...');
   const localEl = document.getElementById('callLocalMedia');
@@ -112,7 +118,7 @@ window.acceptIncomingCall = async function () {
   if (!data) return;
   callTargetId = data.from; callKind = data.kind; isCaller = false;
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: data.kind === 'video' });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: CALL_AUDIO_CONSTRAINTS, video: data.kind === 'video' });
   } catch (e) { alert('تعذّر الوصول للميكروفون/الكاميرا: ' + e.message); window.api.call.decline(data.from); cleanupCall(); return; }
   renderCallScreen(data.kind, data.fromName || data.from, 'جاري الاتصال...');
   const localEl = document.getElementById('callLocalMedia');
