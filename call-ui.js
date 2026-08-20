@@ -14,9 +14,28 @@ const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stu
 // إصلاح صرير/صدى المكالمات عند تشغيل مكبر الصوت (Speaker): getUserMedia بدون قيود صوتية
 // (audio: true فقط) يعتمد على الإعدادات الافتراضية لإلغاء الصدى بالمتصفح، وهذي غير كافية لما
 // يرجع صوت المكبر للميكروفون (حلقة صوتية). هذا الكائن يُستخدم فقط بمسار فتح الميكروفون
-// لمكالمة حية (سطرين بالضبط أدناه) - لا علاقة له بتسجيل الرسائل الصوتية/الفيديو (تلك تبقى
+// لمكالمة حية (المكانين بالضبط أدناه) - لا علاقة له بتسجيل الرسائل الصوتية/الفيديو (تلك تبقى
 // كما هي تمامًا، بدون أي تغيير، بمكان منفصل بهذا الملف).
-const CALL_AUDIO_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+//
+// ملاحظة على القيم الإضافية (googXxx): هذي قيود قديمة خاصة بمتصفحات Chromium/Electron (غير
+// قياسية بمواصفة WebRTC الرسمية)، لكنها معروفة بأنها تعطي إلغاء صدى/ضجيج أقوى فعليًا من القيم
+// القياسية وحدها على هذي المتصفحات تحديدًا - المتصفحات اللي ما تعرفها ببساطة تتجاهلها بدون أي
+// خطأ أو تعطيل (لا تكسر الاتصال أبدًا)، فإضافتها آمنة تمامًا حتى لو مو مدعومة بمكان التشغيل.
+const CALL_AUDIO_CONSTRAINTS = {
+  echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+  channelCount: 1, // التقاط أحادي القناة (مو ستيريو) - خوارزميات إلغاء الصدى تشتغل أدق وأقوى عليه
+  googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true,
+  googHighpassFilter: true, googTypingNoiseDetection: true, googNoiseSuppression2: true, googEchoCancellation2: true
+};
+// تطبيق القيود على مسار الصوت بعد فتح الميكروفون مباشرة (طبقة حماية إضافية): بعض المتصفحات لا
+// تُطبّق كل قيود getUserMedia الأولية بقوة كافية، لكن applyConstraints على المسار (Track) نفسه
+// بعد فتحه يجبرها تُعاد المحاولة بتفعيل صريح - إجراء إضافي بسيط لا يغيّر أي شيء بالمسار نفسه.
+async function reinforceAudioConstraints(stream) {
+  try {
+    const track = stream.getAudioTracks()[0];
+    if (track && track.applyConstraints) await track.applyConstraints(CALL_AUDIO_CONSTRAINTS);
+  } catch (e) { /* لو القيد غير مدعوم بهذا الجهاز/المتصفح، نتجاهل بصمت - الاتصال يكمل عاديًا */ }
+}
 
 let pc = null, localStream = null, callTargetId = null, isCaller = false, callKind = 'audio';
 let pendingRecorder = null, recordedChunks = [], recordKind = null;
@@ -82,6 +101,7 @@ window.startCall = async function (kind) {
   callTargetId = info.otherId; callKind = kind; isCaller = true;
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: CALL_AUDIO_CONSTRAINTS, video: kind === 'video' });
+    await reinforceAudioConstraints(localStream);
   } catch (e) { alert('تعذّر الوصول للميكروفون' + (kind === 'video' ? '/الكاميرا' : '') + ': ' + e.message); return; }
   renderCallScreen(kind, info.name || 'مكالمة', 'جاري الاتصال...');
   const localEl = document.getElementById('callLocalMedia');
@@ -119,6 +139,7 @@ window.acceptIncomingCall = async function () {
   callTargetId = data.from; callKind = data.kind; isCaller = false;
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: CALL_AUDIO_CONSTRAINTS, video: data.kind === 'video' });
+    await reinforceAudioConstraints(localStream);
   } catch (e) { alert('تعذّر الوصول للميكروفون/الكاميرا: ' + e.message); window.api.call.decline(data.from); cleanupCall(); return; }
   renderCallScreen(data.kind, data.fromName || data.from, 'جاري الاتصال...');
   const localEl = document.getElementById('callLocalMedia');
