@@ -1,6 +1,6 @@
 'use strict';
 const BR=[['online','الاونلاين'],['shati','الشاطئ'],['aziziyah','العزيزية'],['fakhriyah','الفاخرية'],['jubail','الجبيل'],['tarout','تاروت'],['hofuf','الهفوف'],['hyper','الهايبر'],['mubarraz','المبرز'],['hafr','حفر الباطن'],['olaya','العليا'],['shahabiyah','الشهابية'],['saihat','سيهات'],['khafji','الخفجي'],['bustan','بستان'],['fursan','الفرسان'],['dahiyah','الضاحية'],['muntazah','المنتزه'],['narjis','النرجس']];
-const WH=[['dabab_wh','مستودع الضباب'],['cups_wh','مستودع الأكواب'],['fursan_main_wh','مستودع الفرسان 2 الرئيسي'],['wh_main_khaldiyah','مستودع الخالدية'],['wh_beauty','مستودع التجميل']];
+const WH=[['cups_wh','مستودع الأكواب'],['fursan_main_wh','مستودع الفرسان 2 الرئيسي'],['wh_main_khaldiyah','مستودع الخالدية'],['wh_beauty','مستودع التجميل'],['dahiyah_wh','مستودع الضاحية'],['narjis_wh','مستودع النرجس'],['gee_wh','مستودع جي']];
 const el=id=>document.getElementById(id); let lastFile=null;
 function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));el('page-'+name).classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===name));}
 document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>page(b.dataset.page));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{page('dashboard');setTimeout(()=>{let x=el(b.dataset.jump);if(x)x.scrollIntoView({behavior:'smooth'})},50)});
