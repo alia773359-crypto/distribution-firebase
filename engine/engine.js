@@ -62,9 +62,6 @@ function sourceReserve(sv, isWh, cfg, isExceptional, locId, readers) {
   if (isExceptional) return 0;
   if (isWh) {
     const thr = whThreshold(cfg, locId);
-    // مهم: المخزون اللي يساوي الحد بالضبط لازم يُعتبر "بالحد أو فوقه" (متاح بالكامل)، مو "تحت
-    // الحد" (محجوز بالكامل) - قبل كان الشرط ">" فقط (أكبر تمامًا)، فكان مخزون = الحد بالضبط
-    // (مثال: مخزون 12 وحد 12) يُحسب خطأً على إنه "أقل من الحد" ويُحجز بالكامل بدل ما يتاح.
     return sv.stock >= thr ? 0 : Math.max(0, sv.stock);
   }
   const daily = readers.daily(sv);
@@ -218,10 +215,12 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
           if (so.av <= 0) continue;
           let q = Math.min(rem, so.av);
           let capKeepQty = Infinity;
-          // "كمية الإبقاء بالمصدر" إعداد خاص بالفروع فقط (يحافظ على مخزون أدنى بالفرع المصدر
-          // لمبيعاته المحلية) - المستودعات لها آلية احتياطي خاصة بها (حد المستودع) بدالة
-          // sourceReserve/available أعلاه، فما نطبّق هذا القيد الإضافي عليها مرة ثانية.
-          if (!so.isWh && cfg.keepQty > 0) { capKeepQty = Math.max(0, so.sv.stock - usedOf(so.s.id) - cfg.keepQty); q = Math.min(q, capKeepQty); }
+          // مهم: لازم نطرح "so.sv.moved" (كميات مسجّلة بشيت "نقل من" - أي بالفعل التزم فيها
+          // المصدر لجهة ثانية سابقًا) قبل ما نقارن بـ"كمية البقاء بالمصدر" - وإلا نحسب الاحتياطي
+          // على المخزون الخام فقط، ونتجاهل إن جزء منه أصلًا مأخوذ/محجوز مسبقًا. مثال حقيقي: مخزون
+          // 30، منقول مسبقًا 18 (المتبقي الفعلي = 12)، والمطلوب إبقاؤه بالمصدر = 16 → بما إن
+          // المتبقي الفعلي (12) أصلًا أقل من المطلوب إبقاؤه (16)، ما يفترض نسحب أي شيء إضافي.
+          if (!so.isWh && cfg.keepQty > 0) { capKeepQty = Math.max(0, so.sv.stock - so.sv.moved - usedOf(so.s.id) - cfg.keepQty); q = Math.min(q, capKeepQty); }
           const dstStockNow = curDestStock(dv, dest.id);
           let capMaxCover = Infinity;
           if (daily > 0 && (dstStockNow + q) / daily > cfg.maxCover) {
@@ -468,10 +467,11 @@ function runDistribution(mode, manual, cfg, ctx, onProgress) {
         // نفس مبدأ تجاوز "منع التكدس" و"أقل تحويل" للفروع المحددة لها حد خاص: كان هذا القيد
         // (الاحتفاظ باحتياطي عند المصدر) يقص الكمية حتى لو الفرع له حد دقيق ومقصود - فكانت
         // النتيجة توصيل أقل من الحد المطلوب بدون أي سبب واضح للمستخدم. الآن يتجاوزه أيضًا.
-        // ملاحظة إضافية: هذا القيد أصلًا خاص بالفروع فقط (احتياطي مخزون الفرع المصدر لمبيعاته
-        // المحلية) - المستودعات لها آلية احتياطي خاصة بها (حد المستودع)، فلا نطبّقه عليها أبدًا.
+        // ملاحظة إضافية: نطرح so.sv.moved (كميات مسجّلة بشيت "نقل من" مسبقًا) قبل مقارنة
+        // المخزون بـ"كمية البقاء بالمصدر" - وإلا يُحسب الاحتياطي على مخزون خام يتجاهل التزامات
+        // سابقة فعلية (مثال: مخزون 30 - منقول 18 = متبقي حقيقي 12، أقل من احتياطي مطلوب 16).
         if (!isExceptional && !d.bypassStack && !so.isWh && cfg.keepQty > 0) {
-          capKeepQty = Math.max(0, so.sv.stock - usedOf(so.s.id) - cfg.keepQty);
+          capKeepQty = Math.max(0, so.sv.stock - so.sv.moved - usedOf(so.s.id) - cfg.keepQty);
           q = Math.min(q, capKeepQty);
         }
         const dstStockNow = curDestStock(dv, dest.id);
@@ -657,7 +657,7 @@ function shortageFromWarehouses(cfg, ctx, opt) {
     const srcAvail = selectedSources.map(so => {
       const sv = readers.vals(b, so.id);
       const thr = whThreshold(cfg, so.id);
-      const avail = Math.max(0, sv.stock > thr ? (sv.stock - sv.moved) : 0);
+      const avail = Math.max(0, sv.stock >= thr ? (sv.stock - sv.moved) : 0);
       return { so, sv, avail, thr };
     });
     selectedDests.forEach(dest => {
