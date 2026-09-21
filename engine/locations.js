@@ -99,7 +99,43 @@ function locByText(cfg, txt) {
       if (c && (n.includes(c) || c.includes(n)) && c.length > bestLen) { bestLen = c.length; best = loc; }
     }
   }
-  return best;
+  if (best) return best;
+  // الطبقة الثالثة والأخيرة (تصحيح ذكي للأخطاء الإملائية): تجرَّب فقط لو ما لقينا أي تطابق
+  // دقيق ولا احتواء نصي إطلاقًا بالخطوتين فوق - عشان أي عمود إكسل فيه غلطة كتابية بسيطة (حرف
+  // ناقص، حرف زايد، حرف مبدّل، أو حتى فراغ/شرطة زيادة أو ناقصة) يتعرّف عليه البرنامج صح برضو،
+  // بدل ما يرفضه كليًا. نحسب "مسافة التحرير" (Levenshtein) بين النص المُدخَل وكل مرادف معروف،
+  // ونختار الأقرب (أقل عدد اختلافات) - بس فقط لو الفرق ضمن نسبة تسامح صغيرة ومعقولة حسب طول
+  // النص، وبشرط طول لا يقل عن 3 أحرف (لحماية الأسماء القصيرة جدًا مثل "جي" من تطابقات عشوائية
+  // خطيرة لا علاقة لها بالاسم الحقيقي - القيود الأقصر لازم تُكتب صح 100% أو تُرفض).
+  function editDistance(a, b) {
+    const m = a.length, n2 = b.length;
+    if (!m) return n2; if (!n2) return m;
+    const dp = new Array(n2 + 1);
+    for (let j = 0; j <= n2; j++) dp[j] = j;
+    for (let i = 1; i <= m; i++) {
+      let prev = dp[0]; dp[0] = i;
+      for (let j = 1; j <= n2; j++) {
+        const tmp = dp[j];
+        dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+        prev = tmp;
+      }
+    }
+    return dp[n2];
+  }
+  if (n.length >= 3) {
+    let bestDist = Infinity, bestFuzzy = null;
+    for (const loc of all) {
+      const cands = [loc.id, loc.ar].concat(loc.aliases || []).map(norm);
+      for (const c of cands) {
+        if (!c || c.length < 3) continue; // مرادفات قصيرة جدًا مستبعدة من التصحيح التلقائي أمانًا
+        const dist = editDistance(n, c);
+        const threshold = Math.max(1, Math.floor(Math.max(n.length, c.length) * 0.18)); // ~18% تسامح
+        if (dist <= threshold && dist < bestDist) { bestDist = dist; bestFuzzy = loc; }
+      }
+    }
+    if (bestFuzzy) return bestFuzzy;
+  }
+  return null;
 }
 
 const __exports = { BRANCHES, WAREHOUSES, norm, allLocations, branchesOf, warehousesOf, locById, locByText };
